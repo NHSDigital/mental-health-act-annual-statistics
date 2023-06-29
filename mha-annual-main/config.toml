@@ -1,0 +1,7 @@
+project_name = "mha_2021_publication"
+year = '2021_22'
+data_dir = 'C:\Users\ALTO2\Documents\GitLab\mha-annual\data'
+output_dir = 'C:\Users\ALTO2\Documents\GitLab\mha-annual\output'
+log_dir = 'C:\Users\ALTO2\Documents\GitLab\mha-annual\log'
+pub_year = '2021-22'
+copyright_year = '2022'
