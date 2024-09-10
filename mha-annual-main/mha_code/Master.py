@@ -45,10 +45,11 @@ dbutils.notebook.run("All Tables", 0, mha_annual_params)
 
 # COMMAND ----------
 
-# DBTITLE 1,Get Population data for 2021/22 for Crude/Standardisation Rates calculations - Mid-2021 DUE SEPTEMBER 2022
+# DBTITLE 1,Get Population data for Crude/Standardisation Rates calculations
 #run "Population" notebook
 # dbutils.notebook.run('Population', 0, mha_annual_params)
-dbutils.notebook.run('Population_2021census', 0, mha_annual_params)
+#dbutils.notebook.run('Population_2021census', 0, mha_annual_params) # notebook for for 2021/22 and 22/23
+dbutils.notebook.run('Population_2021census_2324', 0, mha_annual_params) # notebook for for 23-24
 
 # COMMAND ----------
 
