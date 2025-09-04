@@ -2,11 +2,15 @@
 --create widget text year default "2020-21"; 
 --create widget text rp_enddate default "2021-03-31"; 
 --create widget text rp_startdate default "2020-04-01";
---create widget text db_source default "mhsds_database";
+--create widget text db_source default "$db_source";
 --create widget text personal_db default "chinyere_agu_100064";
 
 -- COMMAND ----------
 
+ %py
+ dbutils.widgets.text("db_output", "$personal_db")
+
+-- COMMAND ----------
 
 INSERT INTO $db_output.mha_unformatted
 
@@ -118,26 +122,26 @@ DISTINCT
   END AS MEASURESUBCATEGORY
 ,'Ethnicity' as DEMOGRAPHIC
 ,CASE 
-  WHEN EthnicCategory = 'A' THEN 'British'
-  WHEN EthnicCategory = 'B' THEN 'Irish'
-  WHEN EthnicCategory = 'C' THEN 'Any Other White Background'
-  WHEN EthnicCategory = 'D' THEN 'White and Black Caribbean' 
-  WHEN EthnicCategory = 'E' THEN 'White and Black African'
-  WHEN EthnicCategory = 'F' THEN 'White and Asian'
-  WHEN EthnicCategory = 'G' THEN 'Any Other Mixed Background'
-  WHEN EthnicCategory = 'H' THEN 'Indian'
-  WHEN EthnicCategory = 'J' THEN 'Pakistani'
-  WHEN EthnicCategory = 'K' THEN 'Bangladeshi'
-  WHEN EthnicCategory = 'L' THEN 'Any Other Asian Background'
-  WHEN EthnicCategory = 'M' THEN 'Caribbean'
-  WHEN EthnicCategory = 'N' THEN 'African'
-  WHEN EthnicCategory = 'P' THEN 'Any Other Black Background'
-  WHEN EthnicCategory = 'R' THEN 'Chinese'
-  WHEN EthnicCategory = 'S' THEN 'Any other ethnic group'
-  WHEN EthnicCategory = 'Z' THEN 'Not Stated'
-  WHEN EthnicCategory = '99' THEN 'Not Known'
-  ELSE 'Unknown'
-  END as DEMOGRAPHICBREAKDOWN
+    WHEN EthnicCategory = 'A' THEN 'British'
+    WHEN EthnicCategory = 'B' THEN 'Irish'
+    WHEN EthnicCategory = 'C' THEN 'Any Other White background'
+    WHEN EthnicCategory = 'D' THEN 'White and Black Caribbean' 
+    WHEN EthnicCategory = 'E' THEN 'White and Black African'
+    WHEN EthnicCategory = 'F' THEN 'White and Asian'
+    WHEN EthnicCategory = 'G' THEN 'Any Other Mixed background'
+    WHEN EthnicCategory = 'H' THEN 'Indian'
+    WHEN EthnicCategory = 'J' THEN 'Pakistani'
+    WHEN EthnicCategory = 'K' THEN 'Bangladeshi'
+    WHEN EthnicCategory = 'L' THEN 'Any Other Asian background'
+    WHEN EthnicCategory = 'M' THEN 'Caribbean'
+    WHEN EthnicCategory = 'N' THEN 'African'
+    WHEN EthnicCategory = 'P' THEN 'Any Other Black background'
+    WHEN EthnicCategory = 'R' THEN 'Chinese'
+    WHEN EthnicCategory = 'S' THEN 'Any Other Ethnic Group'
+    WHEN EthnicCategory = 'Z' THEN 'Not Stated'
+    WHEN EthnicCategory = '99' THEN 'Not Known'
+    ELSE 'Unknown'
+    END as DEMOGRAPHICBREAKDOWN
 ,'All submissions' as ORGANISATIONBREAKDOWN
 ,'MHSDS' AS DATASOURCE
 ,'All prov' as ORGCODE
@@ -164,26 +168,26 @@ FROM
 --ETHNICCATEGORY IS NOT NULL
 GROUP BY 
 CASE 
-  WHEN EthnicCategory = 'A' THEN 'British'
-  WHEN EthnicCategory = 'B' THEN 'Irish'
-  WHEN EthnicCategory = 'C' THEN 'Any Other White Background'
-  WHEN EthnicCategory = 'D' THEN 'White and Black Caribbean' 
-  WHEN EthnicCategory = 'E' THEN 'White and Black African'
-  WHEN EthnicCategory = 'F' THEN 'White and Asian'
-  WHEN EthnicCategory = 'G' THEN 'Any Other Mixed Background'
-  WHEN EthnicCategory = 'H' THEN 'Indian'
-  WHEN EthnicCategory = 'J' THEN 'Pakistani'
-  WHEN EthnicCategory = 'K' THEN 'Bangladeshi'
-  WHEN EthnicCategory = 'L' THEN 'Any Other Asian Background'
-  WHEN EthnicCategory = 'M' THEN 'Caribbean'
-  WHEN EthnicCategory = 'N' THEN 'African'
-  WHEN EthnicCategory = 'P' THEN 'Any Other Black Background'
-  WHEN EthnicCategory = 'R' THEN 'Chinese'
-  WHEN EthnicCategory = 'S' THEN 'Any other ethnic group'
-  WHEN EthnicCategory = 'Z' THEN 'Not Stated'
-  WHEN EthnicCategory = '99' THEN 'Not Known'
-  ELSE 'Unknown'
-  END,
+    WHEN EthnicCategory = 'A' THEN 'British'
+    WHEN EthnicCategory = 'B' THEN 'Irish'
+    WHEN EthnicCategory = 'C' THEN 'Any Other White background'
+    WHEN EthnicCategory = 'D' THEN 'White and Black Caribbean' 
+    WHEN EthnicCategory = 'E' THEN 'White and Black African'
+    WHEN EthnicCategory = 'F' THEN 'White and Asian'
+    WHEN EthnicCategory = 'G' THEN 'Any Other Mixed background'
+    WHEN EthnicCategory = 'H' THEN 'Indian'
+    WHEN EthnicCategory = 'J' THEN 'Pakistani'
+    WHEN EthnicCategory = 'K' THEN 'Bangladeshi'
+    WHEN EthnicCategory = 'L' THEN 'Any Other Asian background'
+    WHEN EthnicCategory = 'M' THEN 'Caribbean'
+    WHEN EthnicCategory = 'N' THEN 'African'
+    WHEN EthnicCategory = 'P' THEN 'Any Other Black background'
+    WHEN EthnicCategory = 'R' THEN 'Chinese'
+    WHEN EthnicCategory = 'S' THEN 'Any Other Ethnic Group'
+    WHEN EthnicCategory = 'Z' THEN 'Not Stated'
+    WHEN EthnicCategory = '99' THEN 'Not Known'
+    ELSE 'Unknown'
+    END,
 CASE WHEN CAST(DETENTION_COUNT AS string) >= 7 THEN '7 and over'
 ELSE CAST(DETENTION_COUNT AS string) END 
 order by 1,2, 4, 3

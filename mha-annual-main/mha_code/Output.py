@@ -1,14 +1,7 @@
 # Databricks notebook source
-dbutils.widgets.text("db_output", "personal_db")
-dbutils.widgets.text("db_source", "mhsds_database")
-dbutils.widgets.text("rp_enddate", "2022-03-31")
-dbutils.widgets.text("rp_startdate", "2021-04-01")
-dbutils.widgets.text("year", "2021/22")
 db_output = dbutils.widgets.get("db_output")
-db_source = dbutils.widgets.get("db_source")
+year = dbutils.widgets.get("year")
 rp_enddate = dbutils.widgets.get("rp_enddate")
-rp_startdate = dbutils.widgets.get("rp_startdate")
-year = dbutils.widgets.get("year") # year widget is exclusive to MHA Annual Publication
 
 # COMMAND ----------
 
@@ -46,7 +39,7 @@ spark.conf.set("spark.databricks.queryWatchdog.maxQueryTasks", 200000)
  ('Age', 'Age', '65 and over', '65 and over', 'All submissions', 'All prov', 'All providers'),
  ('Age', 'Age', 'Unknown', 'Unknown', 'All submissions', 'All prov', 'All providers'),
  ('Age', 'Age', 'All', 'All', 'All submissions', 'All prov', 'All providers'),
- 
+
  ---Ethnicity Values---
  -- Higher Level -- 
  ('Ethnicity', 'Ethnicity', 'White', 'White', 'All submissions', 'All prov', 'All providers'),
@@ -58,7 +51,7 @@ spark.conf.set("spark.databricks.queryWatchdog.maxQueryTasks", 200000)
  ('Ethnicity', 'Ethnicity', 'Not Known', 'Not Known', 'All submissions', 'All prov', 'All providers'),
  ('Ethnicity', 'Ethnicity', 'Unknown', 'Unknown', 'All submissions', 'All prov', 'All providers'),
  ('Ethnicity', 'Ethnicity', 'All', 'All', 'All submissions', 'All prov', 'All providers'),
- 
+
  -- Lower Level --
  ('Ethnicity', 'Ethnicity', 'British', 'British', 'All submissions', 'All prov', 'All providers'),
  ('Ethnicity', 'Ethnicity', 'Irish', 'Irish', 'All submissions', 'All prov', 'All providers'),
@@ -79,7 +72,7 @@ spark.conf.set("spark.databricks.queryWatchdog.maxQueryTasks", 200000)
  ('Ethnicity', 'Ethnicity', 'Not Stated', 'Not Stated', 'All submissions', 'All prov', 'All providers'),
  -- ('Ethnicity', 'Not Known'),
  -- ('Ethnicity', 'Unknown'),
- 
+
  -- Gender Values --
  ('Gender', 'Gender', '1', 'Male', 'All submissions', 'All prov', 'All providers'),
  ('Gender', 'Gender', '2', 'Female', 'All submissions', 'All prov', 'All providers'),
@@ -88,34 +81,34 @@ spark.conf.set("spark.databricks.queryWatchdog.maxQueryTasks", 200000)
  ('Gender', 'Gender', '9', 'Indeterminate', 'All submissions', 'All prov', 'All providers'),
  ('Gender', 'Gender', 'Unknown', 'Unknown', 'All submissions', 'All prov', 'All providers'),
  ('Gender', 'Gender', 'All', 'All', 'All submissions', 'All prov', 'All providers'),
- 
+
  -- IMD Values --
- ('IMD', 'IMD', '01 Least deprived', '01 Least deprived', 'All submissions', 'All prov', 'All providers'),
- ('IMD', 'IMD', '02 Less deprived', '02 Less deprived', 'All submissions', 'All prov', 'All providers'),
- ('IMD', 'IMD', '03 Less deprived', '03 Less deprived', 'All submissions', 'All prov', 'All providers'),
- ('IMD', 'IMD', '04 Less deprived', '04 Less deprived', 'All submissions', 'All prov', 'All providers'),
- ('IMD', 'IMD', '05 Less deprived', '05 Less deprived', 'All submissions', 'All prov', 'All providers'),
- ('IMD', 'IMD', '06 More deprived', '06 More deprived', 'All submissions', 'All prov', 'All providers'),
- ('IMD', 'IMD', '07 More deprived', '07 More deprived', 'All submissions', 'All prov', 'All providers'),
- ('IMD', 'IMD', '08 More deprived', '08 More deprived', 'All submissions', 'All prov', 'All providers'),
- ('IMD', 'IMD', '09 More deprived', '09 More deprived', 'All submissions', 'All prov', 'All providers'),
- ('IMD', 'IMD', '10 Most deprived', '10 Most deprived', 'All submissions', 'All prov', 'All providers'),
- ('IMD', 'IMD', 'Not stated/Not known/Invalid', 'Not stated/Not known/Invalid', 'All submissions', 'All prov', 'All providers'),
+ ('IMD', 'IMD', '01 Most deprived', '01 Most deprived', 'All submissions', 'All prov', 'All providers'),
+ ('IMD', 'IMD', '02 More deprived', '02 More deprived', 'All submissions', 'All prov', 'All providers'),
+ ('IMD', 'IMD', '03 More deprived', '03 More deprived', 'All submissions', 'All prov', 'All providers'),
+ ('IMD', 'IMD', '04 More deprived', '04 More deprived', 'All submissions', 'All prov', 'All providers'),
+ ('IMD', 'IMD', '05 More deprived', '05 More deprived', 'All submissions', 'All prov', 'All providers'),
+ ('IMD', 'IMD', '06 Less deprived', '06 Less deprived', 'All submissions', 'All prov', 'All providers'),
+ ('IMD', 'IMD', '07 Less deprived', '07 Less deprived', 'All submissions', 'All prov', 'All providers'),
+ ('IMD', 'IMD', '08 Less deprived', '08 Less deprived', 'All submissions', 'All prov', 'All providers'),
+ ('IMD', 'IMD', '09 Less deprived', '09 Less deprived', 'All submissions', 'All prov', 'All providers'),
+ ('IMD', 'IMD', '10 Least deprived', '10 Least deprived', 'All submissions', 'All prov', 'All providers'),
+ ('IMD', 'IMD', 'UNKNOWN', 'UNKNOWN', 'All submissions', 'All prov', 'All providers'),
  ('IMD', 'IMD', 'All', 'All', 'All submissions', 'All prov', 'All providers'),
- 
+
  -- CCG non-org values --
  ('CCG', 'All', 'All', 'All', 'CCG', 'UNKNOWN', 'UNKNOWN'),
  ('CCG', 'All', 'All', 'All', 'CCG', 'All prov', 'All providers'),
- 
+
  -- STP non-org values --
  ('STP', 'All', 'All', 'All', 'STP', 'UNKNOWN', 'UNKNOWN'),
  ('STP', 'All', 'All', 'All', 'STP', 'All prov', 'All providers'),
- 
+
  -- NHS Trust non-org values --
  ('NHS Trust Total', 'All', 'All', 'All', 'NHS Trust', 'All prov', 'All providers'),
  ('NHS Trust Both', 'All', 'All', 'All', 'NHS Trust', 'All prov', 'All providers'),
  ('NHS Trust MHSDS', 'All', 'All', 'All', 'NHS Trust', 'All prov', 'All providers'),
- 
+
  -- Independent Health Provider non-org values --
  ('Independent Health Provider Total', 'All', 'All', 'All', 'Independent Health Provider', 'All prov', 'All providers'),
  ('Independent Health Provider Both', 'All', 'All', 'All', 'Independent Health Provider', 'All prov', 'All providers'),
@@ -156,6 +149,12 @@ spark.conf.set("spark.databricks.queryWatchdog.maxQueryTasks", 200000)
  select distinct OrgIDProv as OrgIDProv from $db_output.detentions
  union --to keep 1 line for providers in mhsds and ecds
  select distinct Organisation_Code as OrgIDProv from $db_output.ECDS
+ union ---monthly measures - not sure how these aren't in detentions?
+ select distinct OrgIDProv from $db_output.mha_mhs09prov_prep
+ union 
+ select distinct OrgIDProv from $db_output.mha_mhs08prov_prep
+ union 
+ select distinct OrgIDProv from $db_output.mha_mhs10prov_prep
 
 # COMMAND ----------
 
@@ -166,6 +165,12 @@ spark.conf.set("spark.databricks.queryWatchdog.maxQueryTasks", 200000)
  select distinct OrgIDProv as OrgIDProv from $db_output.short_term_orders
  union 
  select distinct OrgIDProv as OrgIDProv from $db_output.cto
+ union ---monthly measures - not sure how these aren't in detentions?
+ select distinct OrgIDProv from $db_output.mha_mhs09prov_prep
+ union 
+ select distinct OrgIDProv from $db_output.mha_mhs08prov_prep
+ union 
+ select distinct OrgIDProv from $db_output.mha_mhs10prov_prep
 
 # COMMAND ----------
 
@@ -519,7 +524,7 @@ for measure in mha_measures_metadata:
  %sql
  DROP TABLE IF EXISTS $db_output.mha_raw;
  CREATE TABLE IF NOT EXISTS $db_output.mha_raw AS
- 
+
  SELECT 
  DISTINCT
  Z.Year,
@@ -539,7 +544,7 @@ for measure in mha_measures_metadata:
    END AS Datasource,
  Z.OrgID,
  Z.OrgName,
- COALESCE(a.METRIC_VALUE, R.count, C.count, CD.count) AS MHSDS_COUNT, ---Adding in "All" for demographic breakdowns
+ COALESCE(A.METRIC_VALUE, R.count, C.count, CD.count) AS MHSDS_COUNT, ---Adding in "All" for demographic breakdowns
  F.COUNT AS ACUTE_COUNT,
  CASE
    WHEN COALESCE(A.METRIC_VALUE, R.count, C.count, CD.count) IS NOT NULL AND F.COUNT IS NOT NULL THEN COALESCE(A.METRIC_VALUE, R.count, C.count, CD.count) + F.COUNT 

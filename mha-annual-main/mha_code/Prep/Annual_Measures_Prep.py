@@ -7,10 +7,10 @@
  %sql
  ---Get latest CTO record for a person, provider and startdate of CTO
  CREATE OR REPLACE TEMPORARY VIEW MHS404CTO_Latest_Ranked AS
- 
+
  SELECT
  *
- 
+
  FROM
      (SELECT 
      *
@@ -26,7 +26,7 @@
  %sql
  ---Join latest Revoked CTOs to MHA record
  CREATE OR REPLACE TEMPORARY VIEW Revoked_CTO AS
- 
+
  SELECT			B.Person_ID,
  				b.UniqMHActEpisodeID,
  				B.MHS404UniqID,
@@ -38,7 +38,7 @@
  				A.EndDateMHActLegalStatusClass,
                  B.RecordEndDate, ---needed for MHA LOS methodology
  				B.recordnumber
- 
+
  FROM			MHS404CTO_Latest_Ranked
  					AS B
  	LEFT JOIN $db_source.MHS401MHActPeriod AS A ON B.UniqMHActEpisodeID = A.UniqMHActEpisodeID AND (a.RecordEndDate is null or a.RecordEndDate >= '$rp_enddate') and a.RecordStartDate BETWEEN '$rp_startdate' AND '$rp_enddate'
@@ -49,15 +49,15 @@
 
  %sql
  -- Rank hospital spells in order. This is done per patient. 
- 
+
  -- This means that for each patient their hospital spells will be ranked into chronological order. This allows us to get the Previous Discharge Destination for a hospital spell which is used later.
- 
+
  CREATE OR REPLACE TEMPORARY VIEW MHS501_Ranked AS
- 
+
  SELECT
  *
  ,dense_rank() over (partition by Person_ID order by StartDateHospProvSpell ASC, StartTimeHospProvSpell ASC, Case when DischDateHospProvSpell is not null then 1 else 2 end asc, Case when DischDateHospProvSpell is not null then DischDateHospProvSpell end asc, DischTimeHospProvSpell ASC, Case when DischDateHospProvSpell is null then 1 else 2 end asc, UniqMonthID DESC) AS HOSP_ADM_RANK
- 
+
  FROM	(SELECT 
  		*
  		,dense_rank() over (partition by Person_ID, orgidProv, StartDateHospProvSpell, DischDateHospProvSpell  order by UniqMonthID DESC, UniqHospProvSpellID DESC) AS HOSP_DUP_RANK
@@ -70,7 +70,7 @@
 
  %sql
  CREATE OR REPLACE TEMPORARY VIEW HOSP_ADM AS
- 
+
  Select 
  distinct 
  HOSP_ADM_RANK,
@@ -110,7 +110,7 @@
  %sql
  DROP TABLE IF EXISTS $db_output.mha_kp90;
  CREATE TABLE IF NOT EXISTS $db_output.mha_kp90 AS
- 
+
  SELECT
   A.Person_ID
  ,A.UniqMHActEpisodeID
@@ -152,7 +152,7 @@
  	WHEN A.StartDateMHActLegalStatusClass > B.StartDateHospProvSpell THEN 'DSA'
  	WHEN A.StartDateMHActLegalStatusClass < B.StartDateHospProvSpell THEN 'TOS'
  	ELSE 'UNKNOWN' END AS Detention_DateTime_Cat 
- 
+
  FROM
  $db_output.mhs401_latest A
  LEFT JOIN MHS501HospSpell_Latest_Ranked B ON A.Person_ID = B.Person_ID and A.orgidProv = B.orgidProv and CASE
@@ -175,7 +175,7 @@
 
  %sql
  CREATE OR REPLACE TEMPORARY VIEW KP90a AS
- 
+
  SELECT
   A.Person_ID
  ,A.UniqMHActEpisodeID
@@ -236,7 +236,7 @@
  The current MHA episode is selected using = @RANK and the join uses = @RANK -1.
  */
  CREATE OR REPLACE TEMPORARY VIEW HOSP_RANK AS 
- 
+
  SELECT 
  DISTINCT
  HOSP_RANK,
@@ -247,7 +247,7 @@
 
  %sql
  CREATE OR REPLACE TEMPORARY VIEW KP90_1 AS
- 
+
  SELECT 
  A.Person_ID
  ,A.UniqMHActEpisodeID
@@ -286,18 +286,18 @@
  %sql
  /* 
  This is the final data sheet. Some Organisations are hard coded as they have since expired in the year and as such dont get pulled through in the ORG_DAILY table.
- 
+
  The MHA_Logic_Cat provides basic logic on how each MHA episode falls into the certain categories.
- 
+
  MHA_Logic_Cat_Full is the full logic and includes much more detail. This is the one which should be used..
- 
+
  Everything is included in the group by as some rows seemed to be coming through as complete duplicates.
- 
+
  Hard coded Organisations are due to some Orgs expiring midway through the year.
  */
- 
+
  CREATE OR REPLACE TEMPORARY VIEW KP90_2 AS
- 
+
  SELECT 
  A.Person_ID
  ,A.RecordNumber as MHA_RecordNumber
@@ -431,9 +431,9 @@
 
  %sql
  /*
- 
+
  For the MHA_Final logic is calculated to work out how the MHA is being used. This field is MHA_Logic_Cat_full.
- 
+
  Categories for MHA_Logic_Cat_full:
  A = Detentions on admission to hospital
  B = Detentions subsequent to admission
@@ -449,11 +449,13 @@
  M = Guardianship
  P = Criminal Jusitce admissions
  N = Inconsistent value
- 
+
+ #AM- JULY2025: Fixed the missing bracket in the condition to define MHA_Logic_Cat_full as B, Same fix as done on monthly pub menh_bbrb earlier in 2025 as part of developing new MHA measures
+
  */
  DROP TABLE IF EXISTS $db_output.mha_final;
  CREATE TABLE IF NOT EXISTS $db_output.mha_final AS
- 
+
  SELECT 
  a.*
  ,CASE 
@@ -468,28 +470,27 @@
            AND StartDateHospProvSpell between DATE_ADD(StartDateMHActLegalStatusClass,-5) and StartDateMHActLegalStatusClass 
            and MethAdmMHHospProvSpell = '2A' 
      THEN 'A'
- 	WHEN LegalStatusCode in ('02','03') 
-           and ((StartDateHospProvSpell = StartDateMHActLegalStatusClass 
-           and (StartTimeHospProvSpell < StartTimeMHActLegalStatusClass) or StartTimeHospProvSpell is null or StartTimeMHActLegalStatusClass is null) or StartDateMHActLegalStatusClass > StartDateHospProvSpell)
-           and (PrevLegalStatus is null or PrevMHAEndDate < StartDateMHActLegalStatusClass 
-           and (MHS404UniqID is null or (EndDateCommTreatOrd is not null 
-           and EndDateCommTreatOrd < DATE_ADD(StartDateMHActLegalStatusClass,-1))) Or (PrevLegalStatus in ('04','05','06') 
-           and (PrevMHAEndDate = StartDateMHActLegalStatusClass or PrevMHAEndDate = DATE_ADD(StartDateMHActLegalStatusClass,-1)))) 
-           and (MHS404UniqID is null or (EndDateCommTreatOrd is not null 
-           and EndDateCommTreatOrd < DATE_ADD(StartDateMHActLegalStatusClass,-1))) 
-     THEN 'B'
+     WHEN LegalStatusCode in ('02','03') 
+               and ((StartDateHospProvSpell = StartDateMHActLegalStatusClass 
+                   and ((StartTimeHospProvSpell < StartTimeMHActLegalStatusClass) or StartTimeHospProvSpell is null or StartTimeMHActLegalStatusClass is null))
+                   or StartDateMHActLegalStatusClass > StartDateHospProvSpell)
+               and (((PrevLegalStatus is null or PrevMHAEndDate < StartDateMHActLegalStatusClass) 
+                   and (MHS404UniqID is null or (EndDateCommTreatOrd is not null and EndDateCommTreatOrd < DATE_ADD(StartDateMHActLegalStatusClass,-1)))) 
+                   or ((PrevLegalStatus in ('04','05','06') and (PrevMHAEndDate = StartDateMHActLegalStatusClass or PrevMHAEndDate = DATE_ADD(StartDateMHActLegalStatusClass,-1)))
+                   and (MHS404UniqID is null or (EndDateCommTreatOrd is not null and EndDateCommTreatOrd < DATE_ADD(StartDateMHActLegalStatusClass,-1))))) 
+         THEN 'B'
  	WHEN LegalStatusCode in ('02','03') 
            and ((StartDateMHActLegalStatusClass = PrevMHAEndDate) or (StartDateMHActLegalStatusClass = DATE_ADD(PrevMHAEndDate,1) or (StartDateMHActLegalStatusClass = PrevMHAStartDate)))
            and PrevLegalStatus in ('19','20') 
            and ((StartDateHospProvSpell = StartDateMHActLegalStatusClass) or (StartDateHospProvSpell >= PrevMHAStartDate) or (StartDateMHActLegalStatusClass = PrevMHAEndDate)) 
      THEN 'C'
- 	WHEN LegalStatusCode in ('03','09','10','15','16') 
-           and ((StartDateMHActLegalStatusClass >= DATE_ADD(EndDateCommTreatOrd,-1) or EndDateCommTreatOrd is null) 
-           and CommTreatOrdEndReason = '02') 
-           and (StartDateHospProvSpell = StartDateMHActLegalStatusClass or StartDateHospProvSpell >= StartDateCommTreatOrd)
-           or (LegalStatusCode = '03' and CommTreatOrdEndReason = '02' and StartDateMHActLegalStatusClass < StartDateHospProvSpell and EndDateCommTreatOrd between DATE_ADD(StartDateHospProvSpell,-1) 
-           and DATE_ADD(StartDateHospProvSpell,2))  
-     THEN 'D'
+ 	WHEN  (LegalStatusCode in ('03','09','10','15','16') 
+               and ((StartDateMHActLegalStatusClass >= DATE_ADD(EndDateCommTreatOrd,-1) or EndDateCommTreatOrd is null) 
+               and CommTreatOrdEndReason = '02') 
+               and (StartDateHospProvSpell = StartDateMHActLegalStatusClass or StartDateHospProvSpell >= StartDateCommTreatOrd))
+               or (LegalStatusCode = '03' and CommTreatOrdEndReason = '02' and StartDateMHActLegalStatusClass < StartDateHospProvSpell and EndDateCommTreatOrd between DATE_ADD(StartDateHospProvSpell,-1) 
+               and DATE_ADD(StartDateHospProvSpell,2))  
+         THEN 'D'
  	WHEN LegalStatusCode in ('19','20') 
            and (PrevMHAStartDate is null or PrevLegalStatus = '01' or PrevMHAEndDate < StartDateMHActLegalStatusClass) 
      THEN 'E'
@@ -558,7 +559,7 @@
  %sql
  DROP TABLE IF EXISTS $db_output.cto_final;
  CREATE TABLE IF NOT EXISTS $db_output.cto_final AS 
- 
+
  SELECT 
  A.Person_ID,
  A.UniqMHActEpisodeID as CTO_UniqMHActEpisodeID,
@@ -625,7 +626,7 @@
 
  %sql
  INSERT INTO $db_output.detentions
- 
+
  SELECT 
  A.*
  FROM
@@ -646,7 +647,7 @@
 
  %sql
  INSERT INTO $db_output.short_term_orders
- 
+
  SELECT 
  *
  FROM 
@@ -658,7 +659,7 @@
 
  %sql
  INSERT INTO $db_output.cto
- 
+
  SELECT 
  *
  FROM 
@@ -699,7 +700,7 @@
 
  %sql
  CREATE OR REPLACE TEMP VIEW ALL_MHA AS 
- 
+
  SELECT 
  DISTINCT
  PERSON_ID, 
@@ -724,7 +725,7 @@
 
  %sql
  CREATE OR REPLACE TEMP VIEW ALL_EPI AS 
- 
+
  SELECT 
  DISTINCT
  A.PERSON_ID,
@@ -733,14 +734,14 @@
  B.DAY_DATE
  FROM
  ALL_MHA A
- LEFT JOIN reference_database.CALENDAR B on B.DAY_DATE BETWEEN A.STARTDATEMHACTLEGALSTATUSCLASS AND A.EndDateMHActLegalStatusClass
+ LEFT JOIN $reference_data.CALENDAR B on B.DAY_DATE BETWEEN A.STARTDATEMHACTLEGALSTATUSCLASS AND A.EndDateMHActLegalStatusClass
  ORDER BY 1
 
 # COMMAND ----------
 
  %sql
  CREATE OR REPLACE TEMP VIEW ALL_EPI_1 AS 
- 
+
  SELECT 
  DISTINCT
  PERSON_ID,
@@ -761,7 +762,7 @@
 
  %sql
  CREATE OR REPLACE TEMP VIEW CONT_EPI AS
- 
+
  SELECT 
  DISTINCT
  PERSON_ID,
@@ -777,7 +778,7 @@
 
  %sql
  CREATE OR REPLACE TEMP VIEW MHA_SEVERITY AS
- 
+
  SELECT 
  DISTINCT
  A.PERSON_ID,
@@ -797,7 +798,7 @@
 
  %sql
  CREATE OR REPLACE TEMP VIEW MHA_LOS AS 
- 
+
  SELECT 
  DISTINCT
  A.PERSON_ID,
@@ -816,7 +817,7 @@
 
  %sql
  CREATE OR REPLACE TEMP VIEW MHA_LOS_PREP AS 
- 
+
  SELECT 
  DISTINCT
  A.PERSON_ID,
@@ -842,7 +843,7 @@
  %sql
  DROP TABLE IF EXISTS $db_output.mha_los_prep_final;
  CREATE TABLE IF NOT EXISTS $db_output.mha_los_prep_final AS
- 
+
  SELECT
  DISTINCT
  PERSON_ID,
@@ -906,7 +907,7 @@
 
  %sql
  INSERT INTO $db_output.mha_los_quartiles
- 
+
  SELECT 
  DISTINCT
  CONCAT(PERSON_ID, MHA_STARTDATE, MHA_ENDDATE) AS ID,
@@ -923,7 +924,7 @@
  %sql
  DROP TABLE IF EXISTS $db_output.mha_spell_number;
  CREATE TABLE IF NOT EXISTS $db_output.mha_spell_number
- 
+
  SELECT 
  DISTINCT
  A.PERSON_ID,
@@ -948,7 +949,7 @@
 
  %sql
  CREATE OR REPLACE TEMP VIEW all_mha_cto AS 
- 
+
  SELECT 
  DISTINCT
  PERSON_ID, 
@@ -968,9 +969,9 @@
  WHERE
  (LEGALSTATUSCODE IS NOT NULL AND LEGALSTATUSCODE IN ('02','2','03','3','04','4','05','5','06','6','07','7','08','8','09','9','10','12','13','14','15','16','17','18','19','20','31','32','35','36','37','38'
  ))
- 
+
  UNION ALL
- 
+
  SELECT 
  PERSON_ID, 
  CTO_UNIQMHACTEPISODEID  AS UNIQMHAEPISODEID, 
@@ -989,7 +990,7 @@
 
  %sql
  CREATE OR REPLACE TEMP VIEW all_epi_cto AS 
- 
+
  SELECT 
  DISTINCT
  A.PERSON_ID,
@@ -998,14 +999,14 @@
  B.DAY_DATE
  FROM
  all_mha_cto A
- LEFT JOIN reference_database.CALENDAR B on B.DAY_DATE BETWEEN A.STARTDATEMHACTLEGALSTATUSCLASS AND A.EndDateMHActLegalStatusClass
+ LEFT JOIN $reference_data.CALENDAR B on B.DAY_DATE BETWEEN A.STARTDATEMHACTLEGALSTATUSCLASS AND A.EndDateMHActLegalStatusClass
  ORDER BY 1 
 
 # COMMAND ----------
 
  %sql
  CREATE OR REPLACE TEMP VIEW all_epi_1_cto AS 
- 
+
  SELECT 
  DISTINCT
  PERSON_ID,
@@ -1027,7 +1028,7 @@
 
  %sql
  CREATE OR REPLACE TEMP VIEW cont_epi_cto AS
- 
+
  SELECT 
  DISTINCT
  PERSON_ID,
@@ -1043,7 +1044,7 @@
 
  %sql
  CREATE OR REPLACE TEMP VIEW mha_severity_cto AS
- 
+
  SELECT 
  DISTINCT
  A.PERSON_ID,
@@ -1063,7 +1064,7 @@
 
  %sql
  CREATE OR REPLACE TEMP VIEW mha_los_cto AS 
- 
+
  SELECT 
  DISTINCT
  A.PERSON_ID,
@@ -1082,7 +1083,7 @@
 
  %sql
  CREATE OR REPLACE TEMP VIEW MHA_LOS_PREP_CTO AS 
- 
+
  SELECT 
  DISTINCT
  A.PERSON_ID,
@@ -1108,7 +1109,7 @@
  %sql
  DROP TABLE IF EXISTS $db_output.mha_los_cto_prep_final;
  CREATE TABLE IF NOT EXISTS $db_output.mha_los_cto_prep_final AS
- 
+
  SELECT
  DISTINCT
  PERSON_ID,
@@ -1172,7 +1173,7 @@
 
  %sql
  INSERT INTO $db_output.mha_los_quartiles_cto
- 
+
  SELECT 
  DISTINCT
  CONCAT(PERSON_ID, MHA_STARTDATE, MHA_ENDDATE) AS ID,
@@ -1526,7 +1527,7 @@ spark.conf.set("spark.sql.crossJoin.enabled", "true")
 
  %sql
  CREATE OR REPLACE TEMPORARY VIEW IMD_TLEthnicity AS -- CA creating as temp view for purppose of merging into one table with the lower level ethnicity dat
- 
+
  SELECT
  CASE
  WHEN EthnicCategory IN ('A','B','C') THEN 'White'
@@ -1562,7 +1563,7 @@ spark.conf.set("spark.sql.crossJoin.enabled", "true")
 
  %sql
  CREATE OR REPLACE TEMPORARY VIEW IMD_LLEthnicity AS -- CA creating as temp view for purpose of merging into one table with the top level ethnicity data
- 
+
  SELECT
  CASE 
      WHEN EthnicCategory = 'A' THEN 'White British' -- added white to suit Table 1h structure

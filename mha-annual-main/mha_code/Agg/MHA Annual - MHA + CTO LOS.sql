@@ -1,6 +1,6 @@
 -- Databricks notebook source
  %md
- 
+
  National - Counts and Quartiles
 
 -- COMMAND ----------
@@ -68,7 +68,7 @@ Description
 -- COMMAND ----------
 
  %md
- 
+
  National - Gender Counts and Quartiles
 
 -- COMMAND ----------
@@ -140,7 +140,7 @@ Der_Gender
 -- COMMAND ----------
 
  %md 
- 
+
  Age - National Counts and Quartiles
 
 -- COMMAND ----------
@@ -212,7 +212,7 @@ Age
 -- COMMAND ----------
 
  %md
- 
+
  National - Higher Ethnicity Counts and Quartiles
 
 -- COMMAND ----------
@@ -284,7 +284,7 @@ Higher_Ethnic_Category
 -- COMMAND ----------
 
  %md
- 
+
  National - Lower Ethnicity Counts and Quartiles
 
 -- COMMAND ----------
@@ -356,7 +356,7 @@ Ethnic_Category_Description
 -- COMMAND ----------
 
  %md
- 
+
  National - IMD Counts and Quartiles
 
 -- COMMAND ----------
@@ -446,7 +446,7 @@ IMD_Decile
 
  %sql
  DROP TABLE IF EXISTS $db_output.mha_los_cto_output; 
- CREATE TABLE $db_output.mha_los_cto_output as
+ CREATE TABLE $db_output.mha_los_cto_output USING DELTA as
  SELECT 
  L.Geography,
  L.ORGCODE,
@@ -455,10 +455,10 @@ IMD_Decile
  L.MHA_Most_severe_Section,
  L.DEMOGRAPHIC,
  L.DEMOGRAPHIC_CATEGORY,
- COALESCE(CAST(A.METRIC_VALUE as int), 0) AS COUNT,
- COALESCE(CAST(A.LOWER_QUARTILE as float), 0) AS LOWER_QUARTILE,
- COALESCE(CAST(A.MEDIAN as float), 0) AS MEDIAN,
- COALESCE(CAST(A.UPPER_QUARTILE as float), 0) AS UPPER_QUARTILE
+ COALESCE(CAST(A.METRIC_VALUE as int), "*") AS COUNT,
+ COALESCE(CAST(A.LOWER_QUARTILE as float), "*") AS LOWER_QUARTILE,
+ COALESCE(CAST(A.MEDIAN as float), "*") AS MEDIAN,
+ COALESCE(CAST(A.UPPER_QUARTILE as float), "*") AS UPPER_QUARTILE
  FROM $db_output.mha_cto_los1_lookup L
  LEFT JOIN $db_output.mha_cto_los1 A 
  on L.OrgCode = A.OrgCode and L.MHA_MOST_SEVERE_CATEGORY = A.MHA_MOST_SEVERE_CATEGORY AND L.MHA_Most_severe_Section = A.MHA_Most_severe_Section and L.Demographic = A.Demographic AND L.DEMOGRAPHIC_CATEGORY = A.DEMOGRAPHIC_CATEGORY

@@ -1,6 +1,6 @@
 -- Databricks notebook source
  %py
- dbutils.widgets.text("db_output", "personal_db")
+ dbutils.widgets.text("db_output", "$personal_db")
 
 -- COMMAND ----------
 

@@ -1,6 +1,6 @@
 # Databricks notebook source
-dbutils.widgets.text("db_output", "personal_db")
-dbutils.widgets.text("db_source", "mhsds_database")
+dbutils.widgets.text("db_output", "$personal_db")
+dbutils.widgets.text("db_source", "$db_source")
 dbutils.widgets.text("rp_enddate", "2022-03-31")
 dbutils.widgets.text("rp_startdate", "2021-04-01")
 dbutils.widgets.text("year", "2021/22")

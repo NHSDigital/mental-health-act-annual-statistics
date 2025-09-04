@@ -2,11 +2,11 @@
  %sql
  create or replace temporary view imd_detentions as
  select 
- CASE WHEN IMD_DECILE is null THEN "Not stated/Not known/Invalid" ELSE IMD_DECILE END AS Der_IMD_Decile,
+ CASE WHEN IMD_DECILE is null THEN "UNKNOWN" ELSE IMD_DECILE END AS Der_IMD_Decile,
  COUNT(DISTINCT UniqMHActEpisodeID) as count
  from $db_output.detentions
  where MHA_Logic_Cat_full in ('A','B','C','D','P')
- group by CASE WHEN IMD_DECILE is null THEN "Not stated/Not known/Invalid" ELSE IMD_DECILE END
+ group by CASE WHEN IMD_DECILE is null THEN "UNKNOWN" ELSE IMD_DECILE END
 
 # COMMAND ----------
 

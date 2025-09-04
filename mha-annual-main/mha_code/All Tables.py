@@ -6,7 +6,7 @@
 
 # DBTITLE 1,Ref data - THIS NOT EQUIVALENT to get_rd_org_daily_latest()
  %sql
- 
+
  DROP TABLE IF EXISTS $db_output.mha_rd_org_daily_latest; 
  CREATE TABLE $db_output.mha_rd_org_daily_latest AS
  ---MHA Logic for getting all valid providers in the financial year
@@ -14,19 +14,21 @@
  ORG_CODE				
  ,NAME				
  ,CASE 				
- WHEN ORG_TYPE_CODE IN ('CT','TR') THEN 'NHS Trust'
- WHEN ORG_TYPE_CODE IN ('PH','LA','NN') THEN 'Independent Health Provider'
+ WHEN ORG_TYPE_CODE IN ('CT','TR','TS') THEN 'NHS Trust'
+ WHEN ORG_TYPE_CODE IN ('PH','LA','NN','PP') THEN 'Independent Health Provider'
  END AS ORG_TYPE_CODE				
  				
- FROM		reference_database.ORG_DAILY		
+ FROM		$reference_data.ORG_DAILY		
  				
  WHERE			(BUSINESS_END_DATE >= '$rp_enddate' OR BUSINESS_END_DATE IS NULL)	
- 			AND BUSINESS_START_DATE <= '$rp_enddate' AND ORG_TYPE_CODE in ('CC','CF','LB','PT','CT','OU','NS','TR','HA','LA','PH','NN')	
+ 			AND BUSINESS_START_DATE <= '$rp_enddate' AND ORG_TYPE_CODE in ('CC','CF','LB','PT','CT','OU','NS','TR','HA','LA','PH','NN', 'TS', 'PP')	
  			AND (ORG_CLOSE_DATE >= '$rp_enddate' OR ORG_CLOSE_DATE IS NULL)	
  			AND ORG_OPEN_DATE <= '$rp_enddate'
              
  UNION
- ---This is to account for Providers who have closed/merged in the year or when a Provider Site was used as the submitter (for 21/22 it was RTV, ATM01, ATM02)
+ ---This is to account for Providers who have closed/merged in the year or when a Provider Site was used as the submitter 
+ ---(for 21/22 it was RTV, ATM01, ATM02)
+ ---(for 24/25 it was R1C, TAF, RRP)
  SELECT DISTINCT
  ORG_CODE
  ,NAME
@@ -35,9 +37,9 @@
  WHEN ORG_TYPE_CODE IN ('PH','LA','NN', 'PP') THEN 'Independent Health Provider'
  END AS ORG_TYPE_CODE				
  				
- FROM			reference_database.ORG_DAILY	
+ FROM			$reference_data.ORG_DAILY	
  				
- WHERE ORG_CODE IN ("RTV", "ATM01", "ATM02") AND BUSINESS_END_DATE is null
+ WHERE ORG_CODE IN ("RTV", "ATM01", "ATM02", "D6K3I", "R1C", "TAF", "RRP") AND BUSINESS_END_DATE is null
 
 # COMMAND ----------
 
@@ -45,12 +47,12 @@
  %sql
  ----can be replaced by get_rd_ccg_latest()
  CREATE OR REPLACE GLOBAL TEMPORARY VIEW RD_CCG_LATEST AS
- 
+
  SELECT 
  DISTINCT 
    ORG_CODE, 
    NAME
- FROM reference_database.org_daily
+ FROM $reference_data.org_daily
  WHERE (BUSINESS_END_DATE >= add_months('$rp_enddate', 1) OR ISNULL(BUSINESS_END_DATE))
          AND BUSINESS_START_DATE <= add_months('$rp_enddate', 1)
          AND ORG_TYPE_CODE = 'CC'
@@ -76,13 +78,13 @@
                MAX(RecordNumber) AS RecordNumber 
                FROM $db_source.mhs002gp 
                WHERE 
-               GMPCodeReg NOT IN ('V81999','V81998','V819997') 
+               GMPReg NOT IN ('V81999','V81998','V819997')                       ----V6_changes replace with new column name
                AND EndDateGMPRegistration is NULL 
                GROUP BY Person_ID ) AS max_GP
           ON GP.Person_ID = max_GP.Person_ID AND GP.RecordNumber = max_GP.RecordNumber
   WHERE 
  (GP.RecordEndDate is null or GP.RecordEndDate >= '$rp_enddate') and GP.RecordStartDate BETWEEN '$rp_startdate' AND '$rp_enddate'
-  AND GMPCodeReg NOT IN ('V81999','V81998','V819997')
+  AND GMPReg NOT IN ('V81999','V81998','V819997')
   AND EndDateGMPRegistration is NULL 
 
 # COMMAND ----------
@@ -98,12 +100,12 @@
      ON a.Person_ID = b.Person_ID 
          and a.uniqmonthid = b.uniqmonthid 
          and a.recordnumber = b.recordnumber
-         AND b.GMPCodeReg NOT IN ('V81999', 'V81998','V81997')
+         AND b.GMPReg NOT IN ('V81999', 'V81998','V81997')
          AND b.EndDateGMPRegistration is null
  LEFT JOIN global_temp.RD_CCG_LATEST AS c 
-     ON a.OrgIDCCGRes = c.ORG_CODE
+     ON a.OrgIDSubICBLocResidence = c.ORG_CODE
  LEFT JOIN global_temp.RD_CCG_LATEST AS e 
-     ON b.OrgIDCCGGPPractice = e.ORG_CODE
+     ON b.OrgIDSubICBLocGP = e.ORG_CODE
  WHERE 
  (e.ORG_CODE is not null or c.ORG_CODE is not null) 
  AND (a.RecordEndDate is null or a.RecordEndDate >= '$rp_enddate') and a.RecordStartDate BETWEEN '$rp_startdate' AND '$rp_enddate'
@@ -114,7 +116,7 @@
 
  %sql
  CREATE OR REPLACE GLOBAL TEMPORARY VIEW CCG_Prep2 AS 
- 
+
  SELECT 
  a.Person_ID, 
  CASE
@@ -129,15 +131,15 @@
     ON a.Person_ID = b.Person_ID 
         and a.uniqmonthid = b.uniqmonthid 
         and a.recordnumber = b.recordnumber
-        AND b.GMPCodeReg NOT IN ('V81999', 'V81998','V81997')
+        AND b.GMPReg NOT IN ('V81999', 'V81998','V81997')
         AND b.EndDateGMPRegistration is null
  INNER JOIN global_temp.CCG_PREP as ccg 
     on a.recordnumber = ccg.recordnumber
  LEFT JOIN global_temp.RD_CCG_LATEST AS c 
-    ON a.OrgIDCCGRes = c.ORG_CODE
+    ON a.OrgIDSubICBLocResidence = c.ORG_CODE
  LEFT JOIN global_temp.RD_CCG_LATEST AS e 
-    ON b.OrgIDCCGGPPractice = e.ORG_CODE
- 
+    ON b.OrgIDSubICBLocGP = e.ORG_CODE
+
  WHERE 
  (e.ORG_CODE is not null or c.ORG_CODE is not null) 
  AND (a.RecordEndDate is null or a.RecordEndDate >= '$rp_enddate') and a.RecordStartDate BETWEEN '$rp_startdate' AND '$rp_enddate'
@@ -174,7 +176,7 @@
                  ORG_CLOSE_DATE, 
                  BUSINESS_START_DATE, 
                  BUSINESS_END_DATE
-            FROM reference_database.org_daily
+            FROM $reference_data.org_daily
            WHERE (BUSINESS_END_DATE >= add_months('$rp_enddate', 1) OR ISNULL(BUSINESS_END_DATE))
                  AND BUSINESS_START_DATE <= add_months('$rp_enddate', 1)	
                  --AND ORG_TYPE_CODE = 'CC'
@@ -193,7 +195,7 @@
  REL_OPEN_DATE,
  REL_CLOSE_DATE
  FROM 
- reference_database.ORG_RELATIONSHIP_DAILY
+ $reference_data.ORG_RELATIONSHIP_DAILY
  WHERE
  (REL_CLOSE_DATE >= '$rp_enddate' OR ISNULL(REL_CLOSE_DATE))              
  AND REL_OPEN_DATE <= '$rp_enddate'
@@ -203,7 +205,7 @@
  %sql
  DROP TABLE IF EXISTS $db_output.mha_stp_mapping; 
  CREATE TABLE $db_output.mha_stp_mapping AS
- 
+
  SELECT 
  A.ORG_CODE as STP_CODE, 
  A.NAME as STP_NAME, 
@@ -242,10 +244,41 @@
 # COMMAND ----------
 
  %sql
+ DROP TABLE IF EXISTS $db_output.imd_desc;
+ CREATE TABLE IF NOT EXISTS $db_output.imd_desc
+ (
+ IMD_Number STRING,
+ IMD_Decile STRING,
+ IMD_Quintile STRING,
+ IMD_Core20 STRING,
+ FirstMonth INT,
+ LastMonth INT
+ ) USING DELTA
+
+# COMMAND ----------
+
+ %sql
+ TRUNCATE TABLE $db_output.imd_desc;
+ INSERT INTO $db_output.imd_desc VALUES
+ ("1", "01 Most deprived", "01 Most deprived", "Most deprived quintile", 1390, null),
+ ("2", "02 More deprived", "01 Most deprived", "Most deprived quintile", 1390, null),
+ ("3", "03 More deprived", "02", "Other 4 quintiles", 1390, null),
+ ("4", "04 More deprived", "02", "Other 4 quintiles", 1390, null),
+ ("5", "05 More deprived", "03", "Other 4 quintiles", 1390, null),
+ ("6", "06 Less deprived", "03", "Other 4 quintiles", 1390, null),
+ ("7", "07 Less deprived", "04", "Other 4 quintiles", 1390, null),
+ ("8", "08 Less deprived", "04", "Other 4 quintiles", 1390, null),
+ ("9", "09 Less deprived", "05 Least deprived", "Other 4 quintiles", 1390, null),
+ ("10", "10 Least deprived", "05 Least deprived", "Other 4 quintiles", 1390, null),
+ ("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", 1390, null)
+
+# COMMAND ----------
+
+ %sql
  -- Get latest MPI records for the year with some derived fields for demographic breakdowns
  DROP TABLE IF EXISTS $db_output.mhs001_latest; 
  CREATE TABLE $db_output.mhs001_latest AS
- 
+
  SELECT			 
  				 B.UniqMonthID
  				,B.orgidProv
@@ -264,34 +297,24 @@
                  ,A.NAME as CCG_NAME  -- changed NAME to CCG_NAME to match with the detention column name as in MHA_unformatted_table notebook
                  ,C.STP_CODE
                  ,C.STP_NAME
- ,CASE
-                                                 WHEN r.DECI_IMD = 10 THEN '01 Least deprived'
-                                                 WHEN r.DECI_IMD = 9 THEN '02 Less deprived'
-                                                 WHEN r.DECI_IMD = 8 THEN '03 Less deprived'
-                                                 WHEN r.DECI_IMD = 7 THEN '04 Less deprived'
-                                                 WHEN r.DECI_IMD = 6 THEN '05 Less deprived'
-                                                 WHEN r.DECI_IMD = 5 THEN '06 More deprived'
-                                                 WHEN r.DECI_IMD = 4 THEN '07 More deprived'
-                                                 WHEN r.DECI_IMD = 3 THEN '08 More deprived'
-                                                 WHEN r.DECI_IMD = 2 THEN '09 More deprived'
-                                                 WHEN r.DECI_IMD = 1 THEN '10 Most deprived'
-                                                 ELSE 'Not stated/Not known/Invalid'
-                                                 END AS IMD_Decile
+                 ,COALESCE(DEC.IMD_Decile,'UNKNOWN') AS IMD_Decile
+                 
                  FROM $db_source.MHS001MPI AS B
                  INNER JOIN mhs001_prov_latest P ON B.Person_ID = P.Person_ID and B.OrgIDProv = P.OrgIDProv and B.RecordNumber = P.RecordNumber --get latest record for person_id, orgidprov combination
                  LEFT JOIN global_temp.CCG A ON A.PERSON_ID = b.PERSON_ID
                  LEFT JOIN $db_output.mha_stp_mapping c on a.IC_REC_CCG = c.CCG_CODE
-                 LEFT JOIN reference_database.ENGLISH_INDICES_OF_DEP_V02 r on r.LSOA_CODE_2011 = B.LSOA2011 AND r.IMD_YEAR = '2019'
+                 LEFT JOIN $reference_data.ENGLISH_INDICES_OF_DEP_V02 r on r.LSOA_CODE_2011 = B.LSOA2011 AND r.IMD_YEAR = '2019'
+                 LEFT JOIN $db_output.imd_desc DEC on r.DECI_IMD = DEC.IMD_Number and '$month_id' >= DEC.FirstMonth and (DEC.LastMonth is null or '$month_id' <= DEC.LastMonth)
  				where (b.RecordEndDate is null or b.RecordEndDate >= '$rp_enddate') and b.RecordStartDate BETWEEN '$rp_startdate' AND '$rp_enddate'
 
 # COMMAND ----------
 
  %sql
  -- Get latest MHA records for the year.
- 
+
  DROP TABLE IF EXISTS $db_output.mhs401_latest; 
  CREATE TABLE $db_output.mhs401_latest AS
- 
+
  SELECT			 
  				B.UniqMonthID
  				,B.orgidProv
@@ -308,7 +331,7 @@
  				,B.RecordStartDate
                  ,B.RecordEndDate
  				,B.RecordNumber
- 
+
  FROM			$db_source.MHS401MHActPeriod
  					AS B
  				where (RecordEndDate is null or RecordEndDate >= '$rp_enddate') and RecordStartDate BETWEEN '$rp_startdate' AND '$rp_enddate'
@@ -320,7 +343,7 @@
  DROP TABLE IF EXISTS $db_output.mhs403_latest; 
  CREATE TABLE $db_output.mhs403_latest AS
   
- 
+
  SELECT			 B.MHS403UniqID
  				,B.UniqMonthID
  				,B.orgidProv
@@ -333,7 +356,7 @@
  				,B.RecordStartDate
                  ,B.RecordEndDate
  				,B.RecordNumber
- 
+
  FROM			$db_source.MHS403ConditionalDischarge
  					AS B
  				where (RecordEndDate is null or RecordEndDate >= '$rp_enddate') and RecordStartDate BETWEEN '$rp_startdate' AND '$rp_enddate'
@@ -344,7 +367,7 @@
  -- Get latest Community Treatment Order records for the year
  DROP TABLE IF EXISTS $db_output.mhs404_latest; 
  CREATE TABLE $db_output.mhs404_latest AS
- 
+
  SELECT			 B.MHS404UniqID
  				,B.UniqMonthID
  				,B.orgidProv
@@ -357,7 +380,7 @@
  				,B.RecordStartDate
                  ,B.RecordEndDate
  				,B.RecordNumber
- 
+
  FROM			$db_source.MHS404CommTreatOrder
  					AS B
  				where (RecordEndDate is null or RecordEndDate >= '$rp_enddate') and RecordStartDate BETWEEN '$rp_startdate' AND '$rp_enddate'
@@ -368,7 +391,7 @@
  -- Get latest Community Treatment Order Recall records for the year
  DROP TABLE IF EXISTS $db_output.mhs405_latest; 
  CREATE TABLE $db_output.mhs405_latest AS
- 
+
  SELECT			 B.MHS405UniqID
  				,B.UniqMonthID
  				,B.orgidProv
@@ -379,7 +402,7 @@
  				,B.RecordStartDate
                  ,B.RecordEndDate
  				,B.RecordNumber
- 
+
  FROM			$db_source.MHS405CommTreatOrderRecall
  					AS B
  				where (RecordEndDate is null or RecordEndDate >= '$rp_enddate') and RecordStartDate BETWEEN '$rp_startdate' AND '$rp_enddate'
@@ -388,10 +411,10 @@
 
  %sql
  -- Get latest Hospital Spell records for the year.
- 
+
  DROP TABLE IF EXISTS $db_output.mhs501_latest; 
  CREATE TABLE $db_output.mhs501_latest AS
- 
+
  SELECT			 
  				 B.UniqMonthID
  				,B.orgidProv
@@ -406,7 +429,7 @@
  				,B.MethAdmMHHospProvSpell
  				,B.DestOfDischHospProvSpell
  				,B.MethOfDischMHHospProvSpell
- 
+
  FROM			$db_source.MHS501HospProvSpell
  					AS B
  				where (RecordEndDate is null or RecordEndDate >= '$rp_enddate') and RecordStartDate BETWEEN '$rp_startdate' AND '$rp_enddate'
@@ -439,7 +462,7 @@
  %sql
  DROP TABLE IF EXISTS $db_output.detentions;
  CREATE TABLE IF NOT EXISTS $db_output.detentions
- 
+
  (
  Person_ID string
  ,MHA_RecordNumber string
@@ -492,7 +515,7 @@
  %sql
  DROP TABLE IF EXISTS $db_output.short_term_orders;
  CREATE TABLE IF NOT EXISTS $db_output.short_term_orders
- 
+
  (
  Person_ID string
  ,MHA_RecordNumber string
@@ -545,7 +568,7 @@
  %sql
  DROP TABLE IF EXISTS $db_output.cto;
  CREATE TABLE IF NOT EXISTS $db_output.cto
- 
+
  (Person_ID STRING,
  CTO_UniqMHActEpisodeID STRING,
  MHS404UniqID STRING,
@@ -583,7 +606,7 @@
 
  %sql
  INSERT INTO $db_output.restrictive_lookup 
- 
+
  Values
  ('31','34','Formally detained under Mental Health Act Section 45A','Court and prison disposals'),
  ('31','37','Formally detained under Mental Health Act Section 45A','Court and prison disposals'),
@@ -639,7 +662,7 @@
 
  %sql
  INSERT INTO $db_output.excel_lod_mha_lookup 
- 
+
  Values
  ('All', 'All Detentions'),
  ('All', 'Part II'),
@@ -673,7 +696,7 @@
  %sql
  DROP TABLE IF EXISTS $db_output.mha_los_quartiles;
  CREATE TABLE IF NOT EXISTS $db_output.mha_los_quartiles
- 
+
  (
  ID string,
  PERSON_ID string,
@@ -700,7 +723,7 @@
  %sql
  DROP TABLE IF EXISTS $db_output.mha_los;
  CREATE TABLE IF NOT EXISTS $db_output.mha_los
- 
+
  (Geography string,
  OrgCode string,
  OrgName string,
@@ -729,7 +752,7 @@
 
  %sql
  INSERT INTO $db_output.restrictive_lookup_mha_cto 
- 
+
  Values
  ('31','34','Formally detained under Mental Health Act Section 45A','Court and prison disposals'),
  ('31','37','Formally detained under Mental Health Act Section 45A','Court and prison disposals'),
@@ -771,6 +794,7 @@
  ('21','08','Formally detained under Mental Health Act Section 36','Court and prison disposals'),
  ('8','CTO','Community Treatment Order', 'Civil Community-based Detention')
 
+
 # COMMAND ----------
 
  %sql
@@ -785,7 +809,7 @@
 
  %sql
  INSERT INTO $db_output.excel_lod_mha_cto_lookup 
- 
+
  Values
  ('All', 'All Detentions'),
  ('All', 'Part II'),
@@ -817,10 +841,14 @@
 
 # COMMAND ----------
 
+dbutils.widgets.text("db_output", "$personal_db")
+
+# COMMAND ----------
+
  %sql
  DROP TABLE IF EXISTS $db_output.mha_los_quartiles_cto;
  CREATE TABLE IF NOT EXISTS $db_output.mha_los_quartiles_cto
- 
+
  (
  ID string,
  PERSON_ID string,
@@ -847,7 +875,7 @@
  %sql
  DROP TABLE IF EXISTS $db_output.mha_cto_los1;
  CREATE TABLE IF NOT EXISTS $db_output.mha_cto_los1
- 
+
  (Geography string,
  OrgCode string,
  OrgName string,
@@ -859,3 +887,6 @@
  LOWER_QUARTILE float,
  MEDIAN float,
  UPPER_QUARTILE float)
+
+# COMMAND ----------
+

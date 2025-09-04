@@ -1,7 +1,7 @@
 # Databricks notebook source
  %sql
  INSERT INTO $db_output.mha_unformatted 
- 
+
  SELECT
  '$year' AS YEAR
  ,'People subject to the Act on 31st March' as Measure --MHS08
@@ -20,7 +20,7 @@
 
  %sql
  INSERT INTO $db_output.mha_unformatted 
- 
+
  SELECT
  '$year' AS YEAR
  ,'People detained in hospital on 31st March' as Measure --MHS09
@@ -39,7 +39,7 @@
 
  %sql
  INSERT INTO $db_output.mha_unformatted 
- 
+
  SELECT
  '$year' AS YEAR
  ,'People subject to Community Treatment Orders (CTOs) on 31st March' as Measure --MHS10
@@ -58,7 +58,7 @@
 
  %sql
  INSERT INTO $db_output.mha_unformatted 
- 
+
  SELECT
  '$year' AS YEAR
  ,'People subject to the Act on 31st March' as Measure --MHS08
@@ -78,7 +78,7 @@
 
  %sql
  INSERT INTO $db_output.mha_unformatted 
- 
+
  SELECT
  '$year' AS YEAR
  ,'People detained in hospital on 31st March' as Measure --MHS09
@@ -98,7 +98,7 @@
 
  %sql
  INSERT INTO $db_output.mha_unformatted 
- 
+
  SELECT
  '$year' AS YEAR
  ,'People subject to Community Treatment Orders (CTOs) on 31st March' as Measure --MHS10
@@ -118,7 +118,7 @@
 
  %sql
  INSERT INTO $db_output.mha_unformatted 
- 
+
  SELECT
  '$year' AS YEAR
  ,'People subject to the Act on 31st March' as Measure --MHS08
@@ -138,7 +138,7 @@
 
  %sql
  INSERT INTO $db_output.mha_unformatted 
- 
+
  SELECT
  '$year' AS YEAR
  ,'People detained in hospital on 31st March' as Measure --MHS09
@@ -158,7 +158,7 @@
 
  %sql
  INSERT INTO $db_output.mha_unformatted 
- 
+
  SELECT
  '$year' AS YEAR
  ,'People subject to Community Treatment Orders (CTOs) on 31st March' as Measure --MHS10

@@ -56,7 +56,7 @@
 
  %sql
  create or replace temp view adult_cyp_pop as
- 
+
  select
  CASE
  	WHEN Age_group = '0 to 4' THEN '17 and under'

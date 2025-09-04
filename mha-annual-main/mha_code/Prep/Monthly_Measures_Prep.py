@@ -10,7 +10,7 @@
             ,CCG.IC_Rec_CCG
            ,CCG.NAME
        FROM $db_source.MHS001MPI MPI
- 
+
   LEFT JOIN global_temp.CCG CCG
             ON MPI.Person_ID = CCG.Person_ID
       WHERE UniqMonthID = '$month_id'
@@ -41,9 +41,9 @@
  CREATE OR REPLACE GLOBAL TEMPORARY VIEW MHS11_INTERMEDIATE AS
      SELECT	DISTINCT REF.Person_ID
  			,REF.RecordNumber
-             ,AMHServiceRefEndRP
-             ,CYPServiceRefEndRP
-             ,LDAServiceRefEndRP
+  --           ,AMHServiceRefEndRP
+  --           ,CYPServiceRefEndRP
+  --           ,LDAServiceRefEndRP
              ,AgeRepPeriodEnd
              ,IC_REC_CCG
              ,NAME
@@ -60,9 +60,9 @@
  CREATE OR REPLACE GLOBAL TEMPORARY VIEW MHS10_INTERMEDIATE AS
      SELECT	DISTINCT REF.Person_ID
  			,REF.RecordNumber
-             ,AMHServiceRefEndRP
-             ,CYPServiceRefEndRP
-             ,LDAServiceRefEndRP
+ --            ,AMHServiceRefEndRP                              --v6_changes
+ --           ,CYPServiceRefEndRP
+ --            ,LDAServiceRefEndRP
              ,AgeRepPeriodEnd
              ,IC_REC_CCG
              ,NAME
@@ -115,9 +115,9 @@
  CREATE TABLE IF NOT EXISTS $db_output.mha_mhs09_prep
      SELECT	DISTINCT REF.Person_ID
  			,REF.RecordNumber
-             ,AMHServiceWSEndRP
-             ,CYPServiceWSEndRP
-             ,LDAServiceWSEndRP            
+ --            ,AMHServiceWSEndRP
+ --            ,CYPServiceWSEndRP
+ --            ,LDAServiceWSEndRP            
              ,AgeRepPeriodEnd
              ,IC_REC_CCG
              ,NAME
@@ -198,9 +198,9 @@
      SELECT	DISTINCT REF.Person_ID
  			,REF.RecordNumber
  			,REF.OrgIDProv
-             ,AMHServiceRefEndRP
-             ,CYPServiceRefEndRP
-             ,LDAServiceRefEndRP
+ --            ,AMHServiceRefEndRP
+ --            ,CYPServiceRefEndRP
+ --            ,LDAServiceRefEndRP
              ,AgeRepPeriodEnd
        FROM	global_temp.MHS101Referral_open_end_rp AS REF
  INNER JOIN  global_temp.MHS401MHActPeriod_STO_open_end_rp AS STO
@@ -218,10 +218,10 @@
      SELECT	DISTINCT REF.Person_ID
  			,REF.RecordNumber
  			,REF.OrgIDProv
-             ,CASE WHEN REF.OrgIDProv LIKE 'R%' OR REF.OrgIDProv LIKE 'T%' THEN 'NHS Trust' ELSE 'Independent Health Provider' END AS ProvType
-             ,AMHServiceRefEndRP
-             ,CYPServiceRefEndRP
-             ,LDAServiceRefEndRP
+             ,od.ORG_TYPE_CODE AS ProvType
+  --           ,AMHServiceRefEndRP
+  --          ,CYPServiceRefEndRP
+  --           ,LDAServiceRefEndRP
              ,AgeRepPeriodEnd
        FROM	global_temp.MHS101Referral_open_end_rp AS REF
  INNER JOIN  $db_source.MHS401MHActPeriod AS MHA
@@ -248,7 +248,8 @@
  INNER JOIN  $db_source.MHS001MPI AS MPI
              ON REF.Person_ID = MPI.Person_ID
              AND REF.OrgIDProv = MPI.OrgIDProv 
-             AND  MPI.UniqMonthID = '$month_id' 
+             AND  MPI.UniqMonthID = '$month_id'
+ left join $db_output.mha_rd_org_daily_latest od on REF.orgidProv = od.ORG_CODE 
       WHERE	(MHA.EndDateMHActLegalStatusClass IS NULL OR MHA.EndDateMHActLegalStatusClass > '$rp_enddate')
  			AND (CTO.Person_ID IS NOT NULL OR CTOR.Person_ID IS NOT NULL OR CD.UniqMHActEpisodeID IS NOT NULL)
  			AND STO.RecordNumber IS NULL
@@ -261,10 +262,10 @@
      SELECT	DISTINCT REF.Person_ID
  			,REF.RecordNumber
  			,REF.OrgIDProv
-             ,CASE WHEN REF.OrgIDProv LIKE 'R%' OR REF.OrgIDProv LIKE 'T%' THEN 'NHS Trust' ELSE 'Independent Health Provider' END AS ProvType
-             ,AMHServiceWSEndRP
-             ,CYPServiceWSEndRP
-             ,LDAServiceWSEndRP    
+             ,od.ORG_TYPE_CODE AS ProvType
+ --            ,AMHServiceWSEndRP
+ --            ,CYPServiceWSEndRP
+ --            ,LDAServiceWSEndRP    
              ,AgeRepPeriodEnd
        FROM	global_temp.MHS101Referral_open_end_rp AS REF
  INNER JOIN  $db_source.MHS401MHActPeriod AS MHA
@@ -299,6 +300,7 @@
              AND REF.OrgIDProv = HSP.OrgIDProv 
  LEFT JOIN global_temp.MHS502WardStay_Open_End_RP AS WRD
  	   ON HSP.UniqHospProvSpellID = WRD.UniqHospProvSpellID
+ left join $db_output.mha_rd_org_daily_latest od on REF.orgidProv = od.ORG_CODE 
       WHERE	(MHA.EndDateMHActLegalStatusClass IS NULL OR MHA.EndDateMHActLegalStatusClass > '$rp_enddate')
  			AND (CTO.Person_ID IS NULL AND CTOR.Person_ID IS NULL AND CD.UniqMHActEpisodeID IS NULL)
  			AND STO.RecordNumber IS NULL            
@@ -308,31 +310,36 @@
  %sql
  DROP TABLE IF EXISTS $db_output.mha_mhs08prov_prep;
  CREATE TABLE IF NOT EXISTS $db_output.mha_mhs08prov_prep AS
- 
+
  SELECT                 REF.Person_ID, 
                         REF.RecordNumber,
                         REF.OrgIDProv,
-                        CASE WHEN REF.OrgIDProv LIKE 'R%' OR REF.OrgIDProv LIKE 'T%' THEN 'NHS Trust' ELSE 'Independent Health Provider' END AS ProvType
+                        od.ORG_TYPE_CODE AS ProvType
                    FROM global_temp.MHS101Referral_open_end_rp AS REF
              INNER JOIN global_temp.MHS401MHActPeriod_GRD_open_end_rp AS MHA
                         ON REF.Person_ID = MHA.Person_ID
                         AND REF.OrgIDProv = MHA.OrgIDProv
+                    LEFT JOIN $db_output.mha_rd_org_daily_latest od on REF.orgidProv = od.ORG_CODE 
              UNION 
-                  SELECT Person_ID, RecordNumber, OrgIDProv, CASE WHEN OrgIDProv LIKE 'R%' OR OrgIDProv LIKE 'T%' THEN 'NHS Trust' ELSE 'Independent Health Provider' END AS ProvType FROM $db_output.mha_mhs09prov_prep
+                  SELECT Person_ID, RecordNumber, OrgIDProv, od.ORG_TYPE_CODE AS ProvType 
+                  FROM $db_output.mha_mhs09prov_prep mhs09
+                  LEFT JOIN $db_output.mha_rd_org_daily_latest od on mhs09.orgidProv = od.ORG_CODE 
              UNION 
-                  SELECT Person_ID, RecordNumber, OrgIDProv, CASE WHEN OrgIDProv LIKE 'R%' OR OrgIDProv LIKE 'T%' THEN 'NHS Trust' ELSE 'Independent Health Provider' END AS ProvType FROM global_temp.MHS10Prov_INTERMEDIATE
+                  SELECT Person_ID, RecordNumber, OrgIDProv, od.ORG_TYPE_CODE AS ProvType 
+                  FROM global_temp.MHS10Prov_INTERMEDIATE mhs10
+                  LEFT JOIN $db_output.mha_rd_org_daily_latest od on mhs10.orgidProv = od.ORG_CODE
              UNION 
-                  SELECT Person_ID, RecordNumber, OrgIDProv, CASE WHEN OrgIDProv LIKE 'R%' OR OrgIDProv LIKE 'T%' THEN 'NHS Trust' ELSE 'Independent Health Provider' END AS ProvType FROM global_temp.MHS11Prov_INTERMEDIATE
-            
+                  SELECT Person_ID, RecordNumber, OrgIDProv, od.ORG_TYPE_CODE AS ProvType 
+                  FROM global_temp.MHS11Prov_INTERMEDIATE mhs11
+                  LEFT JOIN  $db_output.mha_rd_org_daily_latest od on mhs11.orgidProv = od.ORG_CODE
 
 # COMMAND ----------
 
  %sql
  DROP TABLE IF EXISTS $db_output.mha_mhs10prov_prep;
  CREATE TABLE IF NOT EXISTS $db_output.mha_mhs10prov_prep AS
- 
- SELECT MHS10.Person_ID, MHS10.RecordNumber, MHS10.OrgIDProv,
- CASE WHEN MHS10.OrgIDProv LIKE 'R%' OR MHS10.OrgIDProv LIKE 'T%' THEN 'NHS Trust' ELSE 'Independent Health Provider' END AS ProvType
+
+ SELECT MHS10.Person_ID, MHS10.RecordNumber, MHS10.OrgIDProv, od.ORG_TYPE_CODE AS ProvType
         FROM global_temp.MHS10Prov_INTERMEDIATE AS MHS10 
    LEFT JOIN global_temp.MHS11Prov_INTERMEDIATE AS MHS11
              ON MHS10.Person_ID = MHS11.Person_ID
@@ -343,7 +350,8 @@
       INNER JOIN $db_source.MHS001MPI AS PRSN 
              ON MHS10.Person_ID = PRSN.Person_ID
              AND MHS10.OrgIDProv = PRSN.OrgIDProv
-             AND PRSN.UniqMonthID = '$month_id' 
+             AND PRSN.UniqMonthID = '$month_id'
+       LEFT JOIN $db_output.mha_rd_org_daily_latest od on MHS10.orgidProv = od.ORG_CODE 
        WHERE MHS11.Person_ID IS NULL
  			AND MHS09.Person_ID IS NULL
 
@@ -352,7 +360,7 @@
  %sql
  DROP TABLE IF EXISTS $db_output.mha_mhs08_additional_prep;
  CREATE TABLE IF NOT EXISTS $db_output.mha_mhs08_additional_prep AS
- 
+
  SELECT			PRSN.Person_ID,
  				REF.UniqServReqID,
  				REF.OrgIDProv,
@@ -360,7 +368,7 @@
  				MHA.LegalStatusCode,
  				HSP.StartDateHospProvSpell,
  				MHa.StartDateMHActLegalStatusClass
- 
+
  FROM			$db_source.MHS001MPI
  					AS PRSN
  				LEFT OUTER JOIN $db_source.MHS101Referral
@@ -393,7 +401,7 @@
  			AND HSP.Person_ID IS NOT NULL
  			AND (CTO.Person_ID IS NULL AND CTOR.Person_ID IS NULL AND CD.UniqMHActEpisodeID IS NULL)
  			AND STO.RecordNumber IS NULL
- 
+
  GROUP BY		PRSN.Person_ID,
  				REF.UniqServReqID,
  				REF.OrgIDProv,

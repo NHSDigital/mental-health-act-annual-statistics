@@ -1,5 +1,5 @@
 # Databricks notebook source
-# DBTITLE 1,Create mid-year estimates table from reference_database.ons_2021_census
+# DBTITLE 1,Create mid-year estimates table from $reference_data.ons_2021_census
  %sql
  create or replace temporary view census_2021_national_derived as
  select 
@@ -27,9 +27,9 @@
       when age_code between 80 and 84 then '80 to 84'
       else '85 and over' end as Age_Group,
       sum(observation) as observation
- from reference_database.ons_2021_census
+ from $reference_data.ons_2021_census
  where area_type_group_code = "E92" ---England grouping only
- and ons_date = (select max(ons_date) from reference_database.ons_2021_census where area_type_group_code = "E92") ---most recent data
+ and ons_date = (select max(ons_date) from $reference_data.ons_2021_census where area_type_group_code = "E92") ---most recent data
  group by ethnic_group_code,
  sex_code,
  case when age_code between 0 and 4 then '0 to 4'
@@ -123,7 +123,7 @@
  Age_Group,
  observation as Population
  from census_2021_national_derived c
- left join reference_database.ONS_2021_census_lookup a on c.ethnic_group_code = a.code and a.field = "ethnic_group_code"
+ left join $reference_data.ONS_2021_census_lookup a on c.ethnic_group_code = a.code and a.field = "ethnic_group_code"
  where ethnic_group_code != -8 ---exclude does not apply ethnicity
  order by ethnic_group_formatted, der_gender desc, Age_Group
 
@@ -147,8 +147,8 @@
  ELSE 'Not stated/Not known/Invalid'
  END AS IMD_Decile,
  c.observation
- FROM reference_database.ons_2021_census c
- LEFT JOIN reference_database.ENGLISH_INDICES_OF_DEP_V02 r on c.area_type_code = r.LSOA_CODE_2011 AND c.area_type_group_code = "E01" AND r.IMD_YEAR = '2019'
+ FROM $reference_data.ons_2021_census c
+ LEFT JOIN $reference_data.ENGLISH_INDICES_OF_DEP_V02 r on c.area_type_code = r.LSOA_CODE_2011 AND c.area_type_group_code = "E01" AND r.IMD_YEAR = '2019'
  WHERE c.area_type_group_code = "E01"
 
 # COMMAND ----------
@@ -173,13 +173,13 @@
  c.sex_code,
  c.age_code,
  c.observation
- from reference_database.ons_2021_census c
- left join reference_database.ONS_CHD_GEO_EQUIVALENTS o on c.area_type_code = o.GEOGRAPHY_CODE and area_type_group_code = "E38" and is_current = 1
- left join reference_database.ONS_CHD_GEO_EQUIVALENTS od on c.area_type_code = od.GEOGRAPHY_CODE and area_type_code = "E38000246" ---current workaround while ref data is fixed
- left join reference_database.ONS_2021_census_lookup a on c.ethnic_group_code = a.code and a.field = "ethnic_group_code"
+ from $reference_data.ons_2021_census c
+ left join $reference_data.ONS_CHD_GEO_EQUIVALENTS o on c.area_type_code = o.GEOGRAPHY_CODE and area_type_group_code = "E38" and is_current = 1
+ left join $reference_data.ONS_CHD_GEO_EQUIVALENTS od on c.area_type_code = od.GEOGRAPHY_CODE and area_type_code = "E38000246" ---current workaround while ref data is fixed
+ left join $reference_data.ONS_2021_census_lookup a on c.ethnic_group_code = a.code and a.field = "ethnic_group_code"
  where area_type_group_code = "E38" ---Sub ICB grouping only
  and ethnic_group_code != -8 ---exclude does not apply ethnicity
- and ons_date = (select max(ons_date) from reference_database.ons_2021_census where area_type_group_code = "E38") ---most recent data
+ and ons_date = (select max(ons_date) from $reference_data.ons_2021_census where area_type_group_code = "E38") ---most recent data
 
 # COMMAND ----------
 
@@ -187,7 +187,7 @@
  %sql
  drop table if exists $db_output.mha_ccg_pop;   
  create table if not exists $db_output.mha_ccg_pop as
- 
+
  select 
  ods_sub_icb_code as CCG_CODE,
  sum(observation) as POP
@@ -214,7 +214,7 @@
  %sql
  drop table if exists $db_output.mha_ccg_ethpop;   
  create table if not exists $db_output.mha_ccg_ethpop as
- 
+
  select 
  ods_sub_icb_code as CCG21_CODE,
  CASE WHEN ethnic_group_code in (1, 2, 3, 4, 5) then "Asian or Asian British"
@@ -317,7 +317,7 @@
 
  %sql
  create or replace temporary view lsoa21_ons_ccg as
- select distinct LSOA11, CCG from reference_database.postcode 
+ select distinct LSOA11, CCG from $reference_data.postcode 
  where 
  LEFT(LSOA11, 3) = "E01"
  and (RECORD_END_DATE >= '$rp_enddate' OR RECORD_END_DATE IS NULL)	

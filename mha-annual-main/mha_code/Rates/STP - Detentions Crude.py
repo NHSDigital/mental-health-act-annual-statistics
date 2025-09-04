@@ -8,7 +8,7 @@
  select 
  CASE WHEN STP_CODE is null THEN "UNKNOWN" ELSE STP_CODE END AS STP_CODE,
  CASE WHEN STP_NAME is null THEN "UNKNOWN" ELSE STP_NAME END AS STP_NAME,
- 
+
  COUNT(DISTINCT UniqMHActEpisodeID) as unsup_count,
  suppress(COUNT(DISTINCT UniqMHActEpisodeID)) as count
  from $db_output.detentions

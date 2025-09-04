@@ -7,7 +7,7 @@ spark.conf.set("spark.sql.crossJoin.enabled", "true")
  %sql
  DROP TABLE IF EXISTS $db_output.mha_eth_rates;
  CREATE TABLE IF NOT EXISTS $db_output.mha_eth_rates
- 
+
  SELECT * FROM $db_output.eth_detentions_rates
  UNION ALL
  SELECT * FROM $db_output.eth_stos_rates
@@ -22,7 +22,7 @@ spark.conf.set("spark.sql.crossJoin.enabled", "true")
  %sql
  DROP TABLE IF EXISTS $db_output.mha_gender_rates;
  CREATE TABLE IF NOT EXISTS $db_output.mha_gender_rates
- 
+
  SELECT * FROM $db_output.gender_detentions_rates
  UNION ALL
  SELECT * FROM $db_output.all_gender_detentions_rates
@@ -45,7 +45,7 @@ spark.conf.set("spark.sql.crossJoin.enabled", "true")
  %sql
  DROP TABLE IF EXISTS $db_output.mha_age_rates;
  CREATE TABLE IF NOT EXISTS $db_output.mha_age_rates
- 
+
  SELECT * FROM $db_output.age_detentions_rates
  UNION ALL
  SELECT * FROM $db_output.adult_cyp_detentions_rates
@@ -76,7 +76,7 @@ spark.conf.set("spark.sql.crossJoin.enabled", "true")
  %sql
  DROP TABLE IF EXISTS $db_output.mha_imd_rates;
  CREATE TABLE IF NOT EXISTS $db_output.mha_imd_rates
- 
+
  SELECT * FROM $db_output.imd_detentions_rates
  UNION ALL
  SELECT * FROM $db_output.all_imd_detentions_rates
@@ -87,7 +87,7 @@ spark.conf.set("spark.sql.crossJoin.enabled", "true")
  %sql
  DROP TABLE IF EXISTS $db_output.mha_ccg_rates;
  CREATE TABLE IF NOT EXISTS $db_output.mha_ccg_rates
- 
+
  SELECT * FROM $db_output.ccg_detentions_rates
  UNION ALL
  SELECT * FROM $db_output.all_ccg_detentions_rates
@@ -99,7 +99,7 @@ spark.conf.set("spark.sql.crossJoin.enabled", "true")
  ---COuld we get rid and do an INSERT instead in Rates notebooks
  DROP TABLE IF EXISTS $db_output.mha_stp_rates;
  CREATE TABLE IF NOT EXISTS $db_output.mha_stp_rates
- 
+
  SELECT * FROM $db_output.stp_detentions_rates
  UNION ALL
  SELECT * FROM $db_output.all_stp_detentions_rates
@@ -142,7 +142,7 @@ spark.conf.set("spark.sql.crossJoin.enabled", "true")
  %sql
  DROP TABLE IF EXISTS $db_output.mha_ecds_rates;
  CREATE TABLE IF NOT EXISTS $db_output.mha_ecds_rates
- 
+
  SELECT * FROM $db_output.all_ecds_detentions_rates
  UNION ALL
  SELECT * FROM $db_output.all_ecds_stos_rates

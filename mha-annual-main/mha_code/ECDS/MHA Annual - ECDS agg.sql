@@ -12,8 +12,7 @@ CREATE TABLE IF NOT EXISTS $db_output.ECDS_AGG
 (Measure string,
 MeasureSubcategory string,
 OrganisationBreakdown string,
-OrgID string
-,
+OrgID string,
 Count int)
 
 -- COMMAND ----------

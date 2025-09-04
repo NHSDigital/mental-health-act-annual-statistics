@@ -4,7 +4,7 @@
 # COMMAND ----------
 
 # DBTITLE 1,Get MHRunParameters Class 
- %run mhsds_code/functions/parameter_functions
+ %run //Workspaces/mh_clear_collab/mhsds-rap-v0.1/mhsds_code/functions/parameter_functions
 
 # COMMAND ----------
 
@@ -22,116 +22,105 @@ year = dbutils.widgets.get("year") # year widget is exclusive to MHA Annual Publ
 
 # COMMAND ----------
 
-# initlise MHRunParameters
+#Have to add in rp_startdate and month_id to parameter class as this is the value referenced and we don't want to manually have to update all widgets
 mha_annual = MHRunParameters(db_output, db_source, rp_enddate)
-
-# create custom parameter json for mha run
-mha_annual_params = {
-  "db_output": mha_annual.db_output, #output database
-  "db_source": mha_annual.db_source, #mhsds database
-  "rp_enddate": mha_annual.rp_enddate, #end date of the financial year
-  "rp_startdate": mha_annual.rp_startdate_12m, #start month of the financial year
-  "start_month_id": mha_annual.start_month_id, #month_id in mhs000header for start month of financial year
-  "month_id": mha_annual.end_month_id, #month_id in mhs000header for end month of financial year
-  "year": year #financial year string
-}
-mha_annual_params
+mha_annual.rp_startdate = mha_annual.rp_startdate_12m
+mha_annual.month_id = mha_annual.end_month_id
+mha_annual.year = year
+print(mha_annual.as_dict())
 
 # COMMAND ----------
 
-# DBTITLE 1,Drop/Create Tables needed for MHA Annual (including reference_database reference data)
+# DBTITLE 1,Drop/Create Tables needed for MHA Annual (including $reference_data reference data)
 #run "All Tables" notebook
-dbutils.notebook.run("All Tables", 0, mha_annual_params)
+dbutils.notebook.run("All Tables", 0, mha_annual.as_dict())
 
 # COMMAND ----------
 
-# DBTITLE 1,Get Population data for Crude/Standardisation Rates calculations
+# DBTITLE 1,Get Population data for 2023/24 for Crude/Standardisation Rates calculations 
 #run "Population" notebook
-# dbutils.notebook.run('Population', 0, mha_annual_params)
-#dbutils.notebook.run('Population_2021census', 0, mha_annual_params) # notebook for for 2021/22 and 22/23
-dbutils.notebook.run('Population_2021census_2324', 0, mha_annual_params) # notebook for for 23-24
+# dbutils.notebook.run('Population', 0, mha_annual.as_dict())
+dbutils.notebook.run('Population_2021census_2324', 0, mha_annual.as_dict())
 
 # COMMAND ----------
 
 # DBTITLE 1,Create Prep Tables for MHA 2022
 #run "Annual_Measures_Prep" and "Monthly_Measures_Prep" notebooks
 #these were split into 2 notebooks due massive notebook cell output
-dbutils.notebook.run("Prep/Annual_Measures_Prep", 0, mha_annual_params)
-dbutils.notebook.run("Prep/Monthly_Measures_Prep", 0, mha_annual_params)
+dbutils.notebook.run("Prep/Annual_Measures_Prep", 0, mha_annual.as_dict())
+dbutils.notebook.run("Prep/Monthly_Measures_Prep", 0, mha_annual.as_dict())
 
 # COMMAND ----------
 
 # DBTITLE 1,Prep Tests
-dbutils.notebook.run('Tests/Prep_Tests', 0, mha_annual_params)
+dbutils.notebook.run('Tests/Prep_Tests', 0, mha_annual.as_dict())
 
 # COMMAND ----------
 
 # DBTITLE 1,Aggregate Table 1, 2, 3, 4, Transfers, Repeat Detentions and Discharges following Detention Figures for MHA 2022
-dbutils.notebook.run('Agg/MHA Annual - T1', 0, mha_annual_params)
-dbutils.notebook.run('Agg/MHA Annual - T2', 0, mha_annual_params)
-dbutils.notebook.run('Agg/MHA Annual - T3', 0, mha_annual_params)
-dbutils.notebook.run('Agg/MHA Annual - T4', 0, mha_annual_params)
-dbutils.notebook.run('Agg/MHA Annual - Transfers', 0, mha_annual_params)
-dbutils.notebook.run('Agg/MHA Annual - Repeat Detentions', 0, mha_annual_params)
-dbutils.notebook.run('Agg/MHA Annual - Discharges following detention', 0, mha_annual_params)
-dbutils.notebook.run('Agg/MHA Annual - March 31st', 0, mha_annual_params)
+dbutils.notebook.run('Agg/MHA Annual - T1', 0, mha_annual.as_dict())
+dbutils.notebook.run('Agg/MHA Annual - T2', 0, mha_annual.as_dict())
+dbutils.notebook.run('Agg/MHA Annual - T3', 0, mha_annual.as_dict())
+dbutils.notebook.run('Agg/MHA Annual - T4', 0, mha_annual.as_dict())
+dbutils.notebook.run('Agg/MHA Annual - Transfers', 0, mha_annual.as_dict())
+dbutils.notebook.run('Agg/MHA Annual - Repeat Detentions', 0, mha_annual.as_dict())
+dbutils.notebook.run('Agg/MHA Annual - Discharges following detention', 0, mha_annual.as_dict())
+dbutils.notebook.run('Agg/MHA Annual - March 31st', 0, mha_annual.as_dict())
 
 # COMMAND ----------
 
 # DBTITLE 1,Aggregate MHA only and MHA + CTO Length of Stay Figures for MHA 2022
-dbutils.notebook.run('Agg/MHA Annual - MHA LOS', 0, mha_annual_params)
-dbutils.notebook.run('Agg/MHA Annual - MHA + CTO LOS', 0, mha_annual_params)
+dbutils.notebook.run('Agg/MHA Annual - MHA LOS', 0, mha_annual.as_dict())
+dbutils.notebook.run('Agg/MHA Annual - MHA + CTO LOS', 0, mha_annual.as_dict())
 
 # COMMAND ----------
 
 # DBTITLE 1,Gather ECDS and Aggregate data
-#1967 when counting latest RECORD_IDENTIFIER
-#2209 when counting all RECORD_IDENTIFIERs (duplicates included)
-dbutils.notebook.run('ECDS/MHA Annual - ECDS data', 0, mha_annual_params)
-dbutils.notebook.run('ECDS/MHA Annual - ECDS agg', 0, mha_annual_params)
+dbutils.notebook.run('ECDS/MHA Annual - ECDS data', 0, mha_annual.as_dict())
+dbutils.notebook.run('ECDS/MHA Annual - ECDS agg', 0, mha_annual.as_dict())
 
 # COMMAND ----------
 
 # DBTITLE 1,Crude/Standardisation Rates Aggregation for Ethnicity, Gender, Age, IMD, CCG, STP then combine for MHA 2022 Figures
 ###currently using mid-year 2020 ethnicity/gender/age pop data and 2017 imd pop data
-dbutils.notebook.run('Rates/Ethnicity - Detentions Standardisation', 0, mha_annual_params)
-dbutils.notebook.run('Rates/Ethnicity - Short Term Orders Standardisation', 0, mha_annual_params)
-dbutils.notebook.run('Rates/Ethnicity - CTOs Standardisation', 0, mha_annual_params)
-dbutils.notebook.run('Rates/Ethnicity - Discharges Standardisation', 0, mha_annual_params)
-dbutils.notebook.run('Rates/Gender - Detentions Crude', 0, mha_annual_params)
-dbutils.notebook.run('Rates/Gender - Short Term Orders Crude', 0, mha_annual_params)
-dbutils.notebook.run('Rates/Gender - CTOs Crude', 0, mha_annual_params)
-dbutils.notebook.run('Rates/Gender - Discharges Crude', 0, mha_annual_params)
-dbutils.notebook.run('Rates/Age - Detentions Crude', 0, mha_annual_params)
-dbutils.notebook.run('Rates/Age - Short Term Orders Crude', 0, mha_annual_params)
-dbutils.notebook.run('Rates/Age - CTOs Crude', 0, mha_annual_params)
-dbutils.notebook.run('Rates/Age - Discharges Crude', 0, mha_annual_params)
-dbutils.notebook.run('Rates/IMD - Detentions Crude', 0, mha_annual_params)
+dbutils.notebook.run('Rates/Ethnicity - Detentions Standardisation', 0, mha_annual.as_dict())
+dbutils.notebook.run('Rates/Ethnicity - Short Term Orders Standardisation', 0, mha_annual.as_dict())
+dbutils.notebook.run('Rates/Ethnicity - CTOs Standardisation', 0, mha_annual.as_dict())
+dbutils.notebook.run('Rates/Ethnicity - Discharges Standardisation', 0, mha_annual.as_dict())
+dbutils.notebook.run('Rates/Gender - Detentions Crude', 0, mha_annual.as_dict())
+dbutils.notebook.run('Rates/Gender - Short Term Orders Crude', 0, mha_annual.as_dict())
+dbutils.notebook.run('Rates/Gender - CTOs Crude', 0, mha_annual.as_dict())
+dbutils.notebook.run('Rates/Gender - Discharges Crude', 0, mha_annual.as_dict())
+dbutils.notebook.run('Rates/Age - Detentions Crude', 0, mha_annual.as_dict())
+dbutils.notebook.run('Rates/Age - Short Term Orders Crude', 0, mha_annual.as_dict())
+dbutils.notebook.run('Rates/Age - CTOs Crude', 0, mha_annual.as_dict())
+dbutils.notebook.run('Rates/Age - Discharges Crude', 0, mha_annual.as_dict())
+dbutils.notebook.run('Rates/IMD - Detentions Crude', 0, mha_annual.as_dict())
 
 #currently using 2020 CCG/STP Population data
-dbutils.notebook.run('Rates/CCG - Detentions Crude', 0, mha_annual_params)
-dbutils.notebook.run('Rates/STP - Detentions Crude', 0, mha_annual_params)
-dbutils.notebook.run('Rates/STP - Short Term Orders Crude', 0, mha_annual_params)
+dbutils.notebook.run('Rates/CCG - Detentions Crude', 0, mha_annual.as_dict())
+dbutils.notebook.run('Rates/STP - Detentions Crude', 0, mha_annual.as_dict())
+dbutils.notebook.run('Rates/STP - Short Term Orders Crude', 0, mha_annual.as_dict())
 
 #Adding ECDS data to Detentions and Short Term Orders count to use for rates
-dbutils.notebook.run('Rates/All - Crude', 0, mha_annual_params)
+dbutils.notebook.run('Rates/All - Crude', 0, mha_annual.as_dict())
 
-dbutils.notebook.run('Rates/Rates - Combine', 0, mha_annual_params)
+dbutils.notebook.run('Rates/Rates - Combine', 0, mha_annual.as_dict())
 
 # COMMAND ----------
 
 # DBTITLE 1,Combine Aggregation/Rates into a single output
-dbutils.notebook.run('Output', 0, mha_annual_params)
+dbutils.notebook.run('Output', 0, mha_annual.as_dict())
 
 # COMMAND ----------
 
 # DBTITLE 1,Agg Tests
-dbutils.notebook.run('Tests/Agg_Tests', 0, mha_annual_params)
+dbutils.notebook.run('Tests/Agg_Tests', 0, mha_annual.as_dict())
 
 # COMMAND ----------
 
 # DBTITLE 1,Data Quality
-dbutils.notebook.run('DQ', 0, mha_annual_params)
+dbutils.notebook.run('DQ', 0, mha_annual.as_dict())
 
 # COMMAND ----------
 
@@ -144,9 +133,10 @@ dbutils.notebook.run('DQ', 0, mha_annual_params)
 # COMMAND ----------
 
  %md
- ### 2020-21 MHSDS Detentions: 51,759 ECDS Detentions: 1480 Total Detentions: 53,239 24Prov Detentions: 24,604
- ### 2021-22 MHSDS Detentions: 51,128 ECDS Detentions: 2209 Total Detentions: 53,337 24Prov Detentions: 23,207
- ### 2022-23 MHSDS Detentions: 49.163 ECDS Detentions: 2149 Total Detentions: 51,312 24Prov Detentions: 21,411
+ ### 2020-21 MHSDS Detentions: 51,759 ECDS Detentions: 1,480 Total Detentions: 53,239 24Prov Detentions: 24,604
+ ### 2021-22 MHSDS Detentions: 51,128 ECDS Detentions: 2,209 Total Detentions: 53,337 24Prov Detentions: 23,207
+ ### 2022-23 MHSDS Detentions: 49,163 ECDS Detentions: 2,149 Total Detentions: 51,312 24Prov Detentions: 21,411
+ ### 2023-24 MHSDS Detentions: 50,437 ECDS Detentions: 2,021 Total Detentions: 52,458 24Prov Detentions: 21,955
 
 # COMMAND ----------
 
@@ -187,10 +177,11 @@ dbutils.notebook.run('DQ', 0, mha_annual_params)
  DEMOGRAPHIC,
  DEMOGRAPHIC_CATEGORY,
  COUNT,
- CASE WHEN COUNT < 5 THEN "*" ELSE LOWER_QUARTILE END AS LOWER_QUARTILE,
- CASE WHEN COUNT < 5 THEN "*" ELSE MEDIAN END AS MEDIAN,
- CASE WHEN COUNT < 5 THEN "*" ELSE UPPER_QUARTILE END AS UPPER_QUARTILE
+ CASE WHEN COUNT < 5 OR COUNT = "*" THEN "*" ELSE LOWER_QUARTILE END AS LOWER_QUARTILE,
+ CASE WHEN COUNT < 5 OR COUNT = "*" THEN "*" ELSE MEDIAN END AS MEDIAN,
+ CASE WHEN COUNT < 5 OR COUNT = "*" THEN "*" ELSE UPPER_QUARTILE END AS UPPER_QUARTILE
  from $db_output.mha_los_output
+ where (Geography = "England") or (Geography = "ICB" and DEMOGRAPHIC IN ("All", "Higher Level Ethnicity"))
  union all
  select "MHA and CTO" as section,
  Geography,
@@ -201,9 +192,9 @@ dbutils.notebook.run('DQ', 0, mha_annual_params)
  DEMOGRAPHIC,
  DEMOGRAPHIC_CATEGORY,
  COUNT,
- CASE WHEN COUNT < 5 THEN "*" ELSE LOWER_QUARTILE END AS LOWER_QUARTILE,
- CASE WHEN COUNT < 5 THEN "*" ELSE MEDIAN END AS MEDIAN,
- CASE WHEN COUNT < 5 THEN "*" ELSE UPPER_QUARTILE END AS UPPER_QUARTILE
+ CASE WHEN COUNT < 5 OR COUNT = "*" THEN "*" ELSE LOWER_QUARTILE END AS LOWER_QUARTILE,
+ CASE WHEN COUNT < 5 OR COUNT = "*" THEN "*" ELSE MEDIAN END AS MEDIAN,
+ CASE WHEN COUNT < 5 OR COUNT = "*" THEN "*" ELSE UPPER_QUARTILE END AS UPPER_QUARTILE
  from $db_output.mha_los_cto_output
 
 # COMMAND ----------
@@ -311,7 +302,9 @@ import pandas as pd
  his.T1a_2019_20 as `2019-20`,
  his.T1a_2020_21 as `2020-21`,
  his.T1a_2021_22 as `2021-22`,
- y.providers as `2022-23`
+ his.T1a_2022_23 as `2022-23`,
+ his.T1a_2023_24 as `2023-24`,
+ y.providers as `2024-25`
  from $db_output.dq_table_1a_history his
  left join $db_output.dq_mha_prov_type_subm_year y on his.Org_Type = y.Org_Type
 
@@ -329,7 +322,10 @@ import pandas as pd
  his.T1b_2019_20 as `2019-20`,
  his.T1b_2020_21 as `2020-21`,
  his.T1b_2021_22 as `2021-22`,
- y.detentions as `2022-23`
+ his.T1b_2021_22 as `2021-22`,
+ his.T1b_2022_23 as `2022-23`,
+ his.T1b_2023_24 as `2023-24`,
+ y.detentions as `2024-25`
  from $db_output.dq_table_1b_history his
  left join $db_output.dq_mha_prov_type_det_year y on his.Org_Type = y.Org_Type
 
@@ -349,7 +345,7 @@ dq2_nhsprov_pivot["Provider Type"] = "NHS"
 dq2_indprov_pivot = pd.pivot_table(dq2_p, values="IND_SUBMITTING", columns="Month_Year")
 dq2_indprov_pivot["Provider Type"] = "ISP"
 dq2_final = pd.concat([dq2_allprov_pivot, dq2_nhsprov_pivot, dq2_indprov_pivot])
-dq2_final = dq2_final[["Provider Type", "Apr-2022", "May-2022", "Jun-2022", "Jul-2022", "Aug-2022", "Sep-2022", "Oct-2022", "Nov-2022", "Dec-2022", "Jan-2023", "Feb-2023", "Mar-2023"]]
+dq2_final = dq2_final[["Provider Type", "Apr-2024", "May-2024", "Jun-2024", "Jul-2024", "Aug-2024", "Sep-2024", "Oct-2024", "Nov-2024", "Dec-2024", "Jan-2025", "Feb-2025", "Mar-2025"]]
 display(dq2_final)
 
 # COMMAND ----------
@@ -418,7 +414,9 @@ display(dq5_final)
  his.T6_2019_20 as `2019-20`,
  his.T6_2020_21 as `2020-21`,
  his.T6_2021_22 as `2021-22`,
- y.count as `2022-23`
+ his.T6_2022_23 as `2022-23`,
+ his.T6_2023_24 as `2023-24`,
+ y.count as `2024-25`
  from $db_output.dq_table_6_history his
  left join $db_output.dq_table_6_year y on his.Detention_Type = y.Detention_Type
 
@@ -480,7 +478,9 @@ display(dq5_final)
  his.T5_2019_20 as `People detained on 31st March 2020`,
  his.T5_2020_21 as `People detained on 31st March 2021`,
  his.T5_2021_22 as `People detained on 31st March 2022`,
- y.mhs08 as `People detained on 31st March 2023`
+ his.T5_2022_23 as `People detained on 31st March 2023`,
+ his.T5_2023_24 as `People detained on 31st March 2024`,
+ y.mhs08 as `People detained on 31st March 2025`
  from $db_output.dq_table_10_history his
  left join $db_output.mha_dq_table10_year y on his.Org_Code = y.OrgIDProv
  left join $db_output.mha_rd_org_daily_latest od on y.OrgIDProv = od.ORG_CODE
@@ -500,8 +500,7 @@ display(dq5_final)
  select
  replace("$year", "/", "-") as year,
  demographic_breakdown, organisation_breakdown, primary_level, primary_level_desc, secondary_level, secondary_level_desc, count_of, sub_measure, count, CR
- from $db_output.mha_final_rates 
- where organisation_breakdown != "CCG"
+ from $db_output.mha_final_rates where primary_level is not null and organisation_breakdown != "Sub ICB"
  order by count_of, demographic_breakdown, organisation_breakdown, primary_level, secondary_level
 
 # COMMAND ----------

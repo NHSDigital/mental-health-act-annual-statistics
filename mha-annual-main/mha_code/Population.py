@@ -8,7 +8,7 @@ import io
 
 # COMMAND ----------
 
-# DBTITLE 1,Create mid-year estimates table from reference_database.ons_population_v2 <-- change year_of_count depending on pub year
+# DBTITLE 1,Create mid-year estimates table from $reference_data.ons_population_v2 <-- change year_of_count depending on pub year
  %sql
  create or replace temporary view ons_pop_v2_derived as
  select *,
@@ -36,7 +36,7 @@ import io
       when AGE_LOWER between 75 and 79 then '75 to 79'
       when AGE_LOWER between 80 and 84 then '80 to 84'
       else '85 and over' end as Age_Group
- from reference_database.ons_population_v2
+ from $reference_data.ons_population_v2
  where year_of_count = '2020' ---needs to change depending on the year being ran
  and GEOGRAPHIC_GROUP_CODE = 'E38'
  and trim(RECORD_TYPE) = 'E'
@@ -61,7 +61,7 @@ import io
  -- TRUNCATE TABLE $db_output.pop_health;
  -- REFRESH TABLE $db_output.pop_health;
  DROP TABLE IF EXISTS $db_output.pop_health;
- 
+
  --------------- This is the new table format _____________________________
  CREATE TABLE IF NOT EXISTS $db_output.pop_health
  (
@@ -1083,14 +1083,14 @@ print('---')
  %md
  transformed from this datasource:
  https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationestimates/datasets/lowersuperoutputareamidyearpopulationestimates
- 
- IMD Decile data for each LSOA11 code was obtained from reference_database
+
+ IMD Decile data for each LSOA11 code was obtained from $reference_data
 
 # COMMAND ----------
 
  %sql
  DROP TABLE IF EXISTS $db_output.imd_pop;
- 
+
  --------------- This is the new table format _____________________________
  CREATE TABLE IF NOT EXISTS $db_output.imd_pop
  (      
@@ -1135,10 +1135,10 @@ spark.createDataFrame(df).write.insertInto(f"{db_output}.imd_pop")
  ,sum(case when (pop_v2.age_lower > 17 and pop_v2.age_lower < 65) then pop_v2.population_count else 0 end) as Aged_18_to_64
  ,sum(case when (pop_v2.age_lower > 64) then pop_v2.population_count else 0 end) as Aged_65_OVER
  ,sum(case when (pop_v2.age_lower < 18) then pop_v2.population_count else 0 end) as Aged_0_to_17
- from reference_database.ONS_POPULATION_V2 pop_v2
- inner join  reference_database.ONS_CHD_GEO_EQUIVALENTS geo
+ from $reference_data.ONS_POPULATION_V2 pop_v2
+ inner join  $reference_data.ONS_CHD_GEO_EQUIVALENTS geo
  on pop_v2.GEOGRAPHIC_SUBGROUP_CODE = geo.geography_code 
- Left join reference_database.odsapisuccessordetails successorDetails 
+ Left join $reference_data.odsapisuccessordetails successorDetails 
  on geo.DH_GEOGRAPHY_CODE = successorDetails.Organisationid and successorDetails.Type = 'Successor' and successorDetails.startDate > '2021-03-31'--and geo.IS_CURRENT =1
  where pop_v2.GEOGRAPHIC_GROUP_CODE = 'E38'
  and geo.ENTITY_CODE = 'E38'
@@ -1172,7 +1172,7 @@ spark.createDataFrame(df).write.insertInto(f"{db_output}.imd_pop")
          ref.Aged_65_OVER,
          ref.Aged_0_to_17
  from reference_list_rn1 ref
- inner join reference_database.org_daily org1
+ inner join $reference_data.org_daily org1
  on ref.DH_GEOGRAPHY_CODE = org1.org_code
  where ref.OrganisationID is null
  and org1.Business_end_date is null
@@ -1192,7 +1192,7 @@ spark.createDataFrame(df).write.insertInto(f"{db_output}.imd_pop")
          ref.Aged_65_OVER,
          ref.Aged_0_to_17
  from reference_list_rn1 ref
- inner join reference_database.org_daily org2
+ inner join $reference_data.org_daily org2
  on ref.DH_GEOGRAPHY_CODE = org2.org_code
  where ref.OrganisationID is not null
  and org2.Business_end_date is null
@@ -1206,7 +1206,7 @@ spark.createDataFrame(df).write.insertInto(f"{db_output}.imd_pop")
        org3.name ,
        org3.org_code
  from reference_list_rn1 ref
- inner join reference_database.org_daily org3
+ inner join $reference_data.org_daily org3
  on ref.TargetOrganisationID = org3.org_code
  where ref.OrganisationID is not null
  and org3.Business_end_date is null 
@@ -1235,7 +1235,7 @@ spark.createDataFrame(df).write.insertInto(f"{db_output}.imd_pop")
  %sql
  drop table if exists $db_output.mha_ccg_pop;   
  create table if not exists $db_output.mha_ccg_pop as
- 
+
  select 
  o.CCG_2021_CODE as CCG_CODE,
  sum(All_ages) as POP
@@ -1268,9 +1268,9 @@ spark.createDataFrame(df).write.insertInto(f"{db_output}.imd_pop")
  %sql
  create or replace temporary view ods_ccg_ethpop as
  select distinct e.CCG19CD, o.DH_GEOGRAPHY_CODE as ODS_CCG_CODE, s.OrganisationID as PRED_ID, s.TargetOrganisationID as SUCC_ID, e.Ethnic_group, e.Ethnic_subgroup, e.Ethnicity, e.Ethnic_Code, e.Sex, e.Age, e.EthPOP_value 
- from reference_database.ccg_ethpop e
- left join reference_database.ONS_CHD_GEO_EQUIVALENTS o on e.CCG19CD = o.GEOGRAPHY_CODE
- left join reference_database.odsapisuccessordetails s on o.DH_GEOGRAPHY_CODE = s.Organisationid and s.Type = 'Successor' --and s.startDate > '2022-03-31'
+ from $reference_data.ccg_ethpop e
+ left join $reference_data.ONS_CHD_GEO_EQUIVALENTS o on e.CCG19CD = o.GEOGRAPHY_CODE
+ left join $reference_data.odsapisuccessordetails s on o.DH_GEOGRAPHY_CODE = s.Organisationid and s.Type = 'Successor' --and s.startDate > '2022-03-31'
  where Ethnic_group <> "All"
  order by e.CCG19CD, e.Ethnic_group, e.Ethnic_subgroup, e.Ethnicity, e.Ethnic_Code, e.Sex, e.Age
 
@@ -1289,7 +1289,7 @@ spark.createDataFrame(df).write.insertInto(f"{db_output}.imd_pop")
          e.Age, 
          e.EthPOP_value
  from ods_ccg_ethpop e
- inner join reference_database.org_daily org1
+ inner join $reference_data.org_daily org1
  on e.ODS_CCG_CODE = org1.org_code
  where e.PRED_ID is null
  and org1.Business_end_date is null
@@ -1309,7 +1309,7 @@ spark.createDataFrame(df).write.insertInto(f"{db_output}.imd_pop")
          e.Age, 
          e.EthPOP_value
  from ods_ccg_ethpop e
- inner join reference_database.org_daily org2
+ inner join $reference_data.org_daily org2
  on e.ODS_CCG_CODE = org2.org_code
  where e.PRED_ID is not null
  and org2.Business_end_date is null
@@ -1323,7 +1323,7 @@ spark.createDataFrame(df).write.insertInto(f"{db_output}.imd_pop")
        e.PRED_ID,
        org3.org_code as CCG21_CODE
  from ods_ccg_ethpop e
- inner join reference_database.org_daily org3
+ inner join $reference_data.org_daily org3
  on e.SUCC_ID = org3.org_code
  where e.PRED_ID is not null
  and org3.Business_end_date is null 
@@ -1352,7 +1352,7 @@ spark.createDataFrame(df).write.insertInto(f"{db_output}.imd_pop")
  %sql
  drop table if exists $db_output.mha_ccg_ethpop;   
  create table if not exists $db_output.mha_ccg_ethpop as
- 
+
  select 
  CCG19_CODE,
  CCG21_CODE,
@@ -1467,7 +1467,7 @@ spark.createDataFrame(df).write.insertInto(f"{db_output}.imd_pop")
 
  %sql
  create or replace temporary view lsoa11_ons_ccg19 as
- select distinct LSOA11, CCG as CCG19 from reference_database.postcode 
+ select distinct LSOA11, CCG as CCG19 from $reference_data.postcode 
  where 
  LEFT(LSOA11, 1) = "E"
  and (RECORD_END_DATE >= '2020-03-31' OR RECORD_END_DATE IS NULL)	
@@ -1477,7 +1477,7 @@ spark.createDataFrame(df).write.insertInto(f"{db_output}.imd_pop")
 
  %sql
  create or replace temporary view lsoa11_ons_ccg21 as
- select distinct LSOA11, CCG as CCG21 from reference_database.postcode 
+ select distinct LSOA11, CCG as CCG21 from $reference_data.postcode 
  where 
  LEFT(LSOA11, 1) = "E"
  and (RECORD_END_DATE >= '2022-03-31' OR RECORD_END_DATE IS NULL)	
@@ -1503,7 +1503,7 @@ spark.createDataFrame(df).write.insertInto(f"{db_output}.imd_pop")
                  END AS IMD_Decile
  from lsoa11_ons_ccg19 n
  left join lsoa11_ons_ccg21 t on n.LSOA11 = t.LSOA11
- left join reference_database.english_indices_of_dep_v02 r 
+ left join $reference_data.english_indices_of_dep_v02 r 
                      on n.LSOA11 = r.LSOA_CODE_2011 
                      and r.imd_year = '2019'
  left join $db_output.mha_stp_mapping s on t.CCG21 = s.CCG_CODE
@@ -1512,7 +1512,7 @@ spark.createDataFrame(df).write.insertInto(f"{db_output}.imd_pop")
 
  %sql
  DROP TABLE IF EXISTS $db_output.stp_imd_pop;
- 
+
  --------------- This is the new table format _____________________________
  CREATE TABLE IF NOT EXISTS $db_output.stp_imd_pop
  (      
