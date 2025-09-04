@@ -4,7 +4,7 @@
 
 **Repository owner:** Analytical Services: Community and Mental Health
 
-**Email:** mh.analysis@nhs.net
+**Email:** england.mentalhealthanalysis@nhs.net
 
 To contact us raise an issue on Github or via email and we will respond promptly.
 
